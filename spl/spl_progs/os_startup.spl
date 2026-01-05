@@ -2,21 +2,26 @@
 loadi(4,17);
 loadi(5,18);
 
+
 // loading library
 loadi(63,13);
 loadi(64,14);
+
 
 // loading init
 loadi(65,7);
 loadi(66,8);
 
+
 // loading INT10
 loadi(22,35);
 loadi(23,36);
 
+
 // loading exptn handler
 loadi(2, 15);
 loadi(3, 16);
+
 
 // page table
 PTBR = PAGE_TABLE_BASE;
@@ -50,8 +55,23 @@ PTLR = 10;
 [PTBR+18] = 77;
 [PTBR+19] = "0110";
 
+
+// set up process table
+
+// user area page
+[PROCESS_TABLE + 11] = 80;
+
+// pid
+[PROCESS_TABLE + 1] = 0;
+
+
+// system status table
+[SYSTEM_STATUS_TABLE + 1] = 0;
+
+
 // set stack top as 0 and update sp
 [76*512] = [65*512 + 1];
 SP = 8*512;
+
 
 ireturn;

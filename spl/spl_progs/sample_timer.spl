@@ -1,2 +1,16 @@
+// save user sp
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// update sp to user page area
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+backup;
+
 print "TIMER";
+
+restore;
+
+// get back the user sp
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+
 ireturn;
