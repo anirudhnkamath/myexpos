@@ -5,7 +5,7 @@ disk.xfs
 *~
 *.o
 *.xsm
-*.txt
+# *.txt
 *.tmp
 *.dSYM
 *.vscode/

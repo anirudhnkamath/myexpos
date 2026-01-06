@@ -2,21 +2,21 @@
 loadi(4,17);
 loadi(5,18);
 
-
 // loading library
 loadi(63,13);
 loadi(64,14);
-
 
 // loading init
 loadi(65,7);
 loadi(66,8);
 
-
 // loading INT10
 loadi(22,35);
 loadi(23,36);
 
+// loading INT 7
+loadi(16,29);
+loadi(17,30);
 
 // loading exptn handler
 loadi(2, 15);
