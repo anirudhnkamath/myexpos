@@ -5,9 +5,8 @@ decl
 enddecl
 begin
     num=1;
-    while ( num <= 50 ) do
-         breakpoint;
-         temp = exposcall ( "Write" , -2, num );
+    while ( num <= 100 ) do
+         write(num);
          num = num + 1;
     endwhile;
     return 0;
