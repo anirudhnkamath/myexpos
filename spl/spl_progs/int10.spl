@@ -1,0 +1,21 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = TERMINATED;
+
+alias all_done R0;
+all_done = 1;
+
+alias index R1;
+index = 0;
+while(index < 16) do
+    if([PROCESS_TABLE + (16*index) + 1] != 0 && [PROCESS_TABLE + (16*index) + 4] != TERMINATED) then
+        all_done = 0;
+        break;
+    endif;
+
+    index = index + 1;
+endwhile;
+
+if(all_done == 1) then
+    halt;
+else
+    call SCHEDULER;
+endif;

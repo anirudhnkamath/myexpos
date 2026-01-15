@@ -1,0 +1,75 @@
+
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+
+// ---------------------------------
+
+
+multipush(BP);
+
+
+// ---------------------------------
+
+
+alias process_table_entry R1;
+process_table_entry = PROCESS_TABLE + (currentPID*16);
+
+[process_table_entry + 12] = SP % 512;
+[process_table_entry + 14] = PTBR;
+[process_table_entry + 15] = PTLR;
+
+alias next_entry R2;
+next_entry = process_table_entry;
+alias found R3;
+found = 0;
+while(1 == 1) do
+    next_entry = PROCESS_TABLE + ((next_entry + 16 - PROCESS_TABLE) % 256);
+    
+    if(next_entry == process_table_entry) then
+        break;
+    endif;
+
+    if([next_entry + 4] == CREATED || [next_entry + 4] == READY) then
+        found = 1;
+        break;
+    endif;
+endwhile;
+
+alias newPID R4;
+if(found == 0) then
+    newPID = 0;
+    next_entry = PROCESS_TABLE;
+else
+    newPID = [next_entry + 1];
+endif;
+
+
+// ---------------------------------
+
+
+SP = ([next_entry + 11] * 512) + [next_entry + 12];
+PTBR = [next_entry + 14];
+PTLR = [next_entry + 15];
+
+
+// ---------------------------------
+
+
+[SYSTEM_STATUS_TABLE + 1] = newPID;
+
+
+// ---------------------------------
+
+
+if([next_entry + 4] == CREATED) then
+    SP = [next_entry + 13];
+    [next_entry + 4] = RUNNING;
+    [next_entry + 9] = 0;
+    ireturn;
+endif;
+
+
+[next_entry + 4] = RUNNING;
+multipop(BP);
+return;
