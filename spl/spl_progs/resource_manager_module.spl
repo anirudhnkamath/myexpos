@@ -1,0 +1,60 @@
+
+
+alias functionNum R1;
+alias currentPID R2;
+
+
+// ---------------------------------
+
+
+// acquire terminal
+if (functionNum == 8) then
+    while([TERMINAL_STATUS_TABLE] == 1) do
+        [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_TERMINAL;
+        
+        multipush(R1, R2);
+        call SCHEDULER;
+        multipop(R1, R2);
+    endwhile;
+
+    [TERMINAL_STATUS_TABLE] = 1;
+    [TERMINAL_STATUS_TABLE + 1] = currentPID;
+
+    return;
+endif;
+
+
+// ---------------------------------
+
+
+// release terminal
+if(functionNum == 9) then
+    // if some other process trying to release
+    if([TERMINAL_STATUS_TABLE + 1] != currentPID) then
+        R0 = -1;
+        return;
+    endif;
+
+    [TERMINAL_STATUS_TABLE] = 0;
+
+    // set all wait_terminal to ready
+    alias process_index R4;
+    process_index = 1;
+    while(process_index < 16) do
+        if([PROCESS_TABLE + (16*process_index) + 4] == WAIT_TERMINAL) then
+            [PROCESS_TABLE + (16*process_index) + 4] = READY;
+        endif;
+        process_index = process_index + 1;
+    endwhile;
+
+    // success
+    R0 = 0;
+
+    return;
+endif;
+
+
+// ---------------------------------
+
+
+halt;

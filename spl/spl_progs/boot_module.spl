@@ -32,6 +32,14 @@ loadi(51,64);
 loadi(2, 15);
 loadi(3, 16);
 
+// load resource manager
+loadi(40, 53);
+loadi(41, 54);
+
+// load device manager
+loadi(48, 61);
+loadi(49, 62);
+
 // load even.xsm
 loadi(83, 69);
 
