@@ -1,0 +1,171 @@
+// mode flag
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9;
+
+
+// ---------------------------------
+
+
+// save user sp
+alias userSP R0;
+userSP = SP;
+
+
+// ---------------------------------
+
+
+// switch to kernel stack
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+
+// ---------------------------------
+
+
+// get the file name
+alias fileName_addr R1;
+fileName_addr = [PTBR + (2* ((userSP-4)/512))] * 512 + ((userSP-4)%512);
+alias fileName R1;
+fileName = [R1];
+
+// search file in inode table
+alias inode_index R2;
+inode_index = 0;
+while(inode_index < MAX_FILE_NUM) do
+    if([INODE_TABLE + (16*inode_index) + 1] == fileName) then
+        break;
+    endif;
+    inode_index = inode_index + 1;
+endwhile;
+
+
+// ---------------------------------
+
+
+// no file found
+if(inode_index >= MAX_FILE_NUM || [INODE_TABLE + (16*inode_index) + 0] != EXEC) then
+    alias physicalAddrRetVal R3;
+    physicalAddrRetVal = [PTBR + (2 * ((userSP-1)/512))] * 512 + ((userSP-1) % 512);
+    [physicalAddrRetVal] = -1;
+    ireturn;
+endif;
+
+
+// ---------------------------------
+
+
+// call exit_process function
+multipush(R0, R1, R2);
+R1 = 3;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+call PROCESS_MANAGER;
+multipop(R0, R1, R2);
+
+
+// ---------------------------------
+
+
+// reclaim user area page
+alias userAreaPage R3;
+userAreaPage = [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE + 1]) + 11];
+[MEMORY_FREE_LIST + userAreaPage] = [MEMORY_FREE_LIST + userAreaPage] + 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+SP = userAreaPage*512 - 1;
+
+
+// ---------------------------------
+
+
+// update process table
+[PROCESS_TABLE + (16 * [SYSTEM_STATUS_TABLE+1]) + 4] = READY;
+[PROCESS_TABLE + (16 * [SYSTEM_STATUS_TABLE+1]) + 7] = inode_index;
+
+
+// ---------------------------------
+
+
+// set up page table for new process
+
+PTBR = PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE+1] * 20);
+
+// library
+[PTBR + 0] = 63;
+[PTBR + 1] = "0100";
+[PTBR + 2] = 64;
+[PTBR + 3] = "0100";
+
+// heap
+multipush(R0, R1, R2, R3);
+R1 = 1;
+call MEMORY_MANAGER;
+[PTBR + 4] = R0;
+[PTBR + 5] = "0110";
+R1 = 1;
+call MEMORY_MANAGER;
+[PTBR + 6] = R0;
+[PTBR + 7] = "0110";
+multipop(R0, R1, R2, R3);
+
+// check how many blocks code occupies
+R4 = 8;
+R5 = 8;
+while(R4 < 12) do
+    if([INODE_TABLE + (16*inode_index) + R4] != -1) then
+        multipush(R1, R2, R3, R4, R5);
+        R1 = 1;
+        call MEMORY_MANAGER;
+        multipop(R1, R2, R3, R4, R5);
+        loadi(R0, [INODE_TABLE + (16*inode_index) + R4]);
+        [PTBR + R5] = R0;
+        [PTBR + R5 + 1] = "0100"; 
+    else
+        [PTBR + R5] = -1;
+        [PTBR + R5 + 1] = "0000";
+    endif;
+
+    R4 = R4 + 1;
+    R5 = R5 + 2;
+endwhile;
+
+// stack 
+multipush(R0, R1, R2, R3);
+R1 = 1;
+call MEMORY_MANAGER;
+[PTBR + 16] = R0;
+[PTBR + 17] = "0110";
+R1 = 1;
+call MEMORY_MANAGER;
+[PTBR + 18] = R0;
+[PTBR + 19] = "0110";
+multipop(R0, R1, R2, R3);
+
+
+// ---------------------------------
+
+
+// push ip to top of user stack
+[[PTBR + 16]*512] = [[PTBR + 8]*512 + 1];
+SP = 8*512;
+
+
+// ---------------------------------
+
+
+// return success
+alias physicalAddrRetVal R3;
+physicalAddrRetVal = [PTBR + (2 * ((userSP-1)/512))] * 512 + ((userSP-1) % 512);
+[physicalAddrRetVal] = 0;
+
+
+// ---------------------------------
+
+
+// reset mode flag
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+
+
+// ---------------------------------
+
+ireturn;
+
+

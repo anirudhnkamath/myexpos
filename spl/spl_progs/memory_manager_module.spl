@@ -1,0 +1,68 @@
+
+alias functionNum R1;
+
+
+// ---------------------------------
+
+
+if(functionNum == GET_FREE_PAGE) then    
+    // increment wait_mem count
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+
+    // while mem_free_count is 0
+    while([SYSTEM_STATUS_TABLE + 2] == 0) do
+        [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE + 1]) + 4] = WAIT_MEM;
+
+        multipush(R1);
+        call SCHEDULER;
+        multipop(R1);
+    endwhile;
+
+    // decr wait_mem and mem_free count
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+    // search mem free list
+    alias freePage R2;
+    freePage = 83;
+    while(freePage < MAX_MEM_PAGE) do
+        if([MEMORY_FREE_LIST + freePage] == 0) then
+            [MEMORY_FREE_LIST + freePage] = 1;
+            break;
+        endif;
+        freePage = freePage + 1;
+    endwhile;
+
+    // store return value
+    R0 = freePage;
+    return;
+
+endif;
+
+
+// ---------------------------------
+
+
+if(functionNum == RELEASE_PAGE) then
+    alias pageNum R2;
+
+    [MEMORY_FREE_LIST + pageNum] = [MEMORY_FREE_LIST + pageNum] - 1;
+
+    // release the page if its not used by anyone else
+    if([MEMORY_FREE_LIST + pageNum] == 0) then  
+        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+
+        // set all wait_mem processes to ready
+        alias process_index R3;
+        process_index = 1;
+        while(process_index < 16) do
+            if([PROCESS_TABLE + (16*process_index) + 4] == WAIT_MEM) then
+                [PROCESS_TABLE + (16*process_index) + 4] = READY;
+            endif;
+            process_index = process_index + 1;
+        endwhile;
+    endif;
+
+    return;
+
+endif;

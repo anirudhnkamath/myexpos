@@ -1,0 +1,84 @@
+alias functionNum R1;
+
+
+// ---------------------------------
+
+
+if(R1 == FREE_USER_AREA_PAGE) then
+    alias currentPID R2;
+
+    alias userPageNum R3;
+    userPageNum = [PROCESS_TABLE + (16*currentPID) + 11];
+
+    multipush(R1, R2, R3);
+    R1 = RELEASE_PAGE;
+    R2 = userPageNum;
+    call MEMORY_MANAGER;
+    multipop(R1, R2, R3);
+
+    return;
+endif;
+
+
+// ---------------------------------
+
+
+
+if(R1 == EXIT_PROCESS) then
+    alias currentPID R2;
+
+    // release page table
+    multipush(R1, R2, R3);
+    R1 = FREE_PAGE_TABLE;
+    R2 = currentPID;
+    call PROCESS_MANAGER;
+    multipop(R1, R2, R3);
+
+    multipush(R1, R2, R3);
+    R1 = FREE_USER_AREA_PAGE;
+    R2 = currentPID;
+    call PROCESS_MANAGER;
+    multipop(R1, R2, R3);
+
+    [PROCESS_TABLE + (16*currentPID) + 4] = TERMINATED;
+
+    return;
+endif;
+
+
+// ---------------------------------
+
+
+if(R1 == FREE_PAGE_TABLE) then
+    alias currentPID R2;
+
+    PTBR = [PROCESS_TABLE + (16*currentPID) + 14];
+
+    // library
+    [PTBR + 0] = -1;
+    [PTBR + 1] = "0000";
+    [PTBR + 2] = -1;
+    [PTBR + 3] = "0000";
+
+    // release and invalidate all valid pages
+    alias pageTableAddr R3;
+    pageTableAddr = PTBR + 4;
+    while(pageTableAddr < PTBR + 20) do
+        if([pageTableAddr] != -1) then
+            multipush(R1, R2, R3);
+            R1 = RELEASE_PAGE;
+            R2 = [pageTableAddr];
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3);
+
+            [pageTableAddr] = -1;
+            [pageTableAddr + 1] = "0000";
+        endif;
+        pageTableAddr = pageTableAddr + 2;
+    endwhile;
+
+    return;
+endif;
+
+
+// ---------------------------------
