@@ -62,8 +62,9 @@ loadi(15,28);
 loadi(59, 3);
 loadi(60, 4);
 
-// load even.xsm
-// loadi(83, 69);
+// load disk interrupt
+loadi(6, 19);
+loadi(7, 20);
 
 
 // ---------------------------------
@@ -125,6 +126,19 @@ PTLR = 10;
 // ---------------------------------
 
 
+// initialise per process resource table
+alias resource_table R1;
+resource_table = 80 * 512 + RESOURCE_TABLE_OFFSET;
+R9 = 0;
+while(R9 < 16) do
+    [resource_table + R9] = -1;
+    R9 = R9 + 1;
+endwhile;
+
+
+// ---------------------------------
+
+
 // push ip to init stack
 [76*512] = [65*512 + 1];
 
@@ -168,6 +182,13 @@ endwhile;
 // mem free and mem wait count
 [SYSTEM_STATUS_TABLE + 2] = freePages;
 [SYSTEM_STATUS_TABLE + 3] = 0;
+
+
+// ---------------------------------
+
+
+// disk status table
+[DISK_STATUS_TABLE + 0] = 0;
 
 
 // ---------------------------------

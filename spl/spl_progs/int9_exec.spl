@@ -76,6 +76,19 @@ SP = userAreaPage*512 - 1;
 // ---------------------------------
 
 
+// reset per process resource table
+alias resource_table R8;
+resource_table = userAreaPage * 512 + RESOURCE_TABLE_OFFSET;
+R9 = 0;
+while(R9 < 16) do
+    [resource_table + R9] = -1;
+    R9 = R9 + 1;
+endwhile;
+
+
+// ---------------------------------
+
+
 // update process table
 [PROCESS_TABLE + (16 * [SYSTEM_STATUS_TABLE+1]) + 4] = READY;
 [PROCESS_TABLE + (16 * [SYSTEM_STATUS_TABLE+1]) + 7] = inode_index;
@@ -115,7 +128,17 @@ while(R4 < 12) do
         R1 = 1;
         call MEMORY_MANAGER;
         multipop(R1, R2, R3, R4, R5);
-        loadi(R0, [INODE_TABLE + (16*inode_index) + R4]);
+
+        // call disk load         
+        multipush(R0, R1, R2, R3, R4, R5);
+        R4 = [INODE_TABLE + (16*inode_index) + R4];
+        R1 = DISK_LOAD;
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        R3 = R0;
+        
+        call DEVICE_MANAGER;
+        multipop(R0, R1, R2, R3, R4, R5);
+
         [PTBR + R5] = R0;
         [PTBR + R5 + 1] = "0100"; 
     else
