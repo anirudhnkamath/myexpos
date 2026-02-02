@@ -107,48 +107,32 @@ PTBR = PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE+1] * 20);
 [PTBR + 2] = 64;
 [PTBR + 3] = "0100";
 
-// heap
+// heap is initially not allocated
+[PTBR + 4] = -1;
+[PTBR + 5] = "0000";
+[PTBR + 6] = -1;
+[PTBR + 7] = "0000";
+
+// allocate only 1 block of code
+alias firstBlock R4;
+firstBlock = [INODE_TABLE + (16*inode_index) + 8];
+
+// validate only 1 entry
 multipush(R0, R1, R2, R3);
-R1 = 1;
+R1 = GET_CODE_PAGE;
+R2 = firstBlock;
 call MEMORY_MANAGER;
-[PTBR + 4] = R0;
-[PTBR + 5] = "0110";
-R1 = 1;
-call MEMORY_MANAGER;
-[PTBR + 6] = R0;
-[PTBR + 7] = "0110";
+[PTBR + 8] = R0;
+[PTBR + 9] = "0100";
 multipop(R0, R1, R2, R3);
 
-// check how many blocks code occupies
-R4 = 8;
-R5 = 8;
-while(R4 < 12) do
-    if([INODE_TABLE + (16*inode_index) + R4] != -1) then
-        multipush(R1, R2, R3, R4, R5);
-        R1 = 1;
-        call MEMORY_MANAGER;
-        multipop(R1, R2, R3, R4, R5);
-
-        // call disk load         
-        multipush(R0, R1, R2, R3, R4, R5);
-        R4 = [INODE_TABLE + (16*inode_index) + R4];
-        R1 = DISK_LOAD;
-        R2 = [SYSTEM_STATUS_TABLE + 1];
-        R3 = R0;
-        
-        call DEVICE_MANAGER;
-        multipop(R0, R1, R2, R3, R4, R5);
-
-        [PTBR + R5] = R0;
-        [PTBR + R5 + 1] = "0100"; 
-    else
-        [PTBR + R5] = -1;
-        [PTBR + R5 + 1] = "0000";
-    endif;
-
-    R4 = R4 + 1;
-    R5 = R5 + 2;
-endwhile;
+// invalidate rest of code
+[PTBR + 10] = -1;
+[PTBR + 11] = "0000";
+[PTBR + 12] = -1;
+[PTBR + 13] = "0000";
+[PTBR + 14] = -1;
+[PTBR + 15] = "0000";
 
 // stack 
 multipush(R0, R1, R2, R3);
@@ -162,6 +146,26 @@ call MEMORY_MANAGER;
 [PTBR + 19] = "0110";
 multipop(R0, R1, R2, R3);
 
+
+// ---------------------------------
+
+
+// initialise the disk map table
+alias dmapTableEntry R1;
+dmapTableEntry = [DISK_MAP_TABLE + (10*[SYSTEM_STATUS_TABLE+1])];
+
+// first initialise to -1
+R6 = 0;
+while(R6 < 10) do
+    [dmapTableEntry + R6] = -1;
+    R6 = R6 + 1;
+endwhile;
+
+// update only code blocks
+[dmapTableEntry + 4] = [INODE_TABLE + (16*inode_index) + 8];
+[dmapTableEntry + 5] = [INODE_TABLE + (16*inode_index) + 9];
+[dmapTableEntry + 6] = [INODE_TABLE + (16*inode_index) + 10];
+[dmapTableEntry + 7] = [INODE_TABLE + (16*inode_index) + 11];
 
 // ---------------------------------
 
