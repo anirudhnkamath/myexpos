@@ -77,6 +77,51 @@ if(R1 == FREE_PAGE_TABLE) then
         pageTableAddr = pageTableAddr + 2;
     endwhile;
 
+
+    // go through the disk map table for swapped heap pages
+    alias i R3;
+    i = 2;
+    while(i < 4) do
+        alias blockNum R4;
+        blockNum = [DISK_MAP_TABLE + (10*currentPID) + i];
+
+        if(blockNum != -1) then
+            multipush(R1, R2, R3);
+            R1 = RELEASE_BLOCK;
+            R3 = currentPID;
+            R2 = blockNum;
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3);
+        endif;
+
+        i = i + 1;
+    endwhile;
+
+    // go through the disk map table for swapped stack pages
+    i = 8;
+    while(i < 10) do
+        alias blockNum R4;
+        blockNum = [DISK_MAP_TABLE + (10*currentPID) + i];
+
+        if(blockNum != -1) then
+            multipush(R1, R2, R3);
+            R1 = RELEASE_BLOCK;
+            R3 = currentPID;
+            R2 = blockNum;
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3);
+        endif;
+        
+        i = i + 1;
+    endwhile;
+
+    // reset the disk map table
+    i = 0;
+    while(i < 10) do
+        [DISK_MAP_TABLE + (currPID*10) + i] = -1;
+        i = i + 1;
+    endwhile;
+
     return;
 endif;
 
