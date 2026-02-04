@@ -1,0 +1,47 @@
+type
+    list{
+        int val;
+        list next;
+    }
+endtype
+
+decl
+    list node,head,tempNode;
+enddecl
+
+
+int main(){
+    decl
+        int n,temp,iter,nodeval;
+
+    enddecl
+
+    begin
+        
+        temp=exposcall("Read",-1,n);
+        temp=exposcall("Heapset");
+        head=exposcall("Alloc",2);
+        
+        tempNode=head;
+        iter=0;
+        while(iter<n) do
+            node=exposcall("Alloc",2);
+            temp=exposcall("Read",-1,nodeval);
+            node.val=nodeval;
+            tempNode.next=node;
+            tempNode=node;
+            iter=iter+1;
+        endwhile;
+
+        iter=0;
+        tempNode=head.next;
+        while(iter<n) do 
+            temp=exposcall("Write",-2,tempNode.val);
+            tempNode=tempNode.next;
+            iter=iter+1;
+        endwhile;
+
+        return 0;
+
+    end
+}

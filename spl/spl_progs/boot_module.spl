@@ -66,6 +66,10 @@ loadi(60, 4);
 loadi(6, 19);
 loadi(7, 20);
 
+// disk free list
+loadi(2, 15);
+loadi(3, 16);
+
 
 // ---------------------------------
 
@@ -132,6 +136,17 @@ resource_table = 80 * 512 + RESOURCE_TABLE_OFFSET;
 R9 = 0;
 while(R9 < 16) do
     [resource_table + R9] = -1;
+    R9 = R9 + 1;
+endwhile;
+
+
+// ---------------------------------
+
+
+// disk map table initialise 
+R9 = 0;
+while(R9 < 10) do
+    [DISK_MAP_TABLE + 10 + R9] = -1;
     R9 = R9 + 1;
 endwhile;
 

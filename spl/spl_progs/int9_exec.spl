@@ -152,7 +152,7 @@ multipop(R0, R1, R2, R3);
 
 // initialise the disk map table
 alias dmapTableEntry R1;
-dmapTableEntry = [DISK_MAP_TABLE + (10*[SYSTEM_STATUS_TABLE+1])];
+dmapTableEntry = DISK_MAP_TABLE + (10*[SYSTEM_STATUS_TABLE+1]);
 
 // first initialise to -1
 R6 = 0;
@@ -166,6 +166,7 @@ endwhile;
 [dmapTableEntry + 5] = [INODE_TABLE + (16*inode_index) + 9];
 [dmapTableEntry + 6] = [INODE_TABLE + (16*inode_index) + 10];
 [dmapTableEntry + 7] = [INODE_TABLE + (16*inode_index) + 11];
+
 
 // ---------------------------------
 
@@ -192,6 +193,7 @@ physicalAddrRetVal = [PTBR + (2 * ((userSP-1)/512))] * 512 + ((userSP-1) % 512);
 
 
 // ---------------------------------
+
 
 ireturn;
 

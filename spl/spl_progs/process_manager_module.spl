@@ -118,7 +118,7 @@ if(R1 == FREE_PAGE_TABLE) then
     // reset the disk map table
     i = 0;
     while(i < 10) do
-        [DISK_MAP_TABLE + (currPID*10) + i] = -1;
+        [DISK_MAP_TABLE + (currentPID*10) + i] = -1;
         i = i + 1;
     endwhile;
 

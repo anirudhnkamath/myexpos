@@ -1,0 +1,124 @@
+// mode flag to -1
+[PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 9] = -1;
+
+
+// ---------------------------------
+
+
+alias userSP R1;
+userSP=SP;
+
+// switch to kernel stack and backup
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+backup;
+
+// push eip to stack
+multipush(EIP);
+
+
+// ---------------------------------
+
+
+// uncorrectable errors
+
+if(EC != 0 || userSP == (PTLR*512 - 1)) then
+
+    if(EC == 1) then
+        print "ilgl instr";
+    endif;
+    if(EC == 2) then
+        print "ilgl mem";
+    endif;
+    if(EC == 3) then
+        print "ilgl math";
+    endif;
+
+    if(userSP == (PTLR*512 - 1)) then
+        print "overflow";
+    endif;
+
+    R1 = EXIT_PROCESS;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    call PROCESS_MANAGER;
+
+    call SCHEDULER;
+
+endif;
+
+
+// ---------------------------------
+
+
+// if code page gives fault
+if(EPN == 4 || EPN == 5 || EPN == 6 || EPN == 7) then
+    alias blockNum R2;
+    blockNum = [DISK_MAP_TABLE + (10*[SYSTEM_STATUS_TABLE+1]) + EPN];
+
+    // get the block from disk
+    multipush(R1, R2);
+    R1 = GET_CODE_PAGE;
+    R2 = blockNum;
+    call MEMORY_MANAGER;
+    multipop(R1, R2);
+
+    // update page table
+    [PTBR + (2*EPN) + 0] = R0;
+    [PTBR + (2*EPN) + 1] = "1100";
+endif;
+
+
+// ---------------------------------
+
+
+// if stack page gives fault
+if(EPN == 2 || EPN == 3) then
+    
+    alias pageNum R2;
+    pageNum = 2;
+
+    // get free pages for page 2 and 3
+    while(pageNum < 4) do
+        multipush(R1, R2);
+        R1 = GET_FREE_PAGE;
+        call MEMORY_MANAGER;
+        multipop(R1, R2);
+
+        // update page table
+        [PTBR + (2*pageNum) + 0] = R0;
+        [PTBR + (2*pageNum) + 1] = "1110";
+
+        pageNum = pageNum + 1;
+    endwhile;
+endif;
+
+
+// ---------------------------------
+
+
+// reset mode flag
+[PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 9] = 0;
+
+
+// ---------------------------------
+
+
+// restore the context and EIP
+multipop(EIP);
+restore;
+
+
+// ---------------------------------
+
+
+// store EIP on top of user stack
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+
+SP = SP + 1;
+[([PTBR + 2*(SP/512)] * 512) + SP%512] = EIP;
+
+
+// ---------------------------------
+
+
+ireturn;
