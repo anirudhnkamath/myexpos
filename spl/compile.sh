@@ -18,5 +18,7 @@ set -e
 ./spl spl_progs/resource_manager_module.spl
 ./spl spl_progs/scheduler_module.spl
 ./spl spl_progs/sample_timer.spl
+./spl spl_progs/fork.spl
+
 
 echo "All SPL files compiled successfully."

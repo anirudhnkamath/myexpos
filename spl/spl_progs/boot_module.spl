@@ -70,11 +70,15 @@ loadi(7, 20);
 loadi(2, 15);
 loadi(3, 16);
 
+// load fork
+loadi(18, 31);
+loadi(19, 32);
+
 
 // ---------------------------------
 
 
-// page table for init(odd.xsm) process
+// page table for init process
 PTBR = PAGE_TABLE_BASE + 20;
 PTLR = 10;
 

@@ -5,7 +5,6 @@ currentPID = [SYSTEM_STATUS_TABLE + 1];
 
 // ---------------------------------
 
-
 multipush(BP);
 
 
@@ -64,6 +63,7 @@ PTLR = [next_entry + 15];
 
 if([next_entry + 4] == CREATED) then
     SP = [next_entry + 13];
+    BP = [[next_entry+11] * 512];
     [next_entry + 4] = RUNNING;
     [next_entry + 9] = 0;
     ireturn;

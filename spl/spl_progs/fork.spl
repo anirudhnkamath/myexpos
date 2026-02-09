@@ -156,6 +156,7 @@ endwhile;
 // copy parent stack to child
 alias parentStack R6;
 alias childStack R7;
+alias i R5;
 
 parentStack = [PTBR + 16];
 childStack = [childPTBR + 16];
@@ -178,7 +179,7 @@ endwhile;
 
 
 // store bp to kernel stk of child
-[PROCESS_TABLE + (16*childPID) + 11]*512 = BP;
+[[PROCESS_TABLE + (16*childPID) + 11] * 512] = BP;
 
 
 // ---------------------------------

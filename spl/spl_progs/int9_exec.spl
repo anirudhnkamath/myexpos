@@ -1,3 +1,4 @@
+
 // mode flag
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9;
 
@@ -99,6 +100,7 @@ endwhile;
 
 // set up page table for new process
 
+
 PTBR = PAGE_TABLE_BASE + ([SYSTEM_STATUS_TABLE+1] * 20);
 
 // library
@@ -145,6 +147,7 @@ call MEMORY_MANAGER;
 [PTBR + 18] = R0;
 [PTBR + 19] = "0110";
 multipop(R0, R1, R2, R3);
+
 
 
 // ---------------------------------

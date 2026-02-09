@@ -5,13 +5,13 @@
 // ---------------------------------
 
 
-alias userSP R1;
-userSP=SP;
-
 // switch to kernel stack and backup
 [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 backup;
+
+alias userSP R1;
+userSP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 
 // push eip to stack
 multipush(EIP);
@@ -52,6 +52,7 @@ endif;
 
 // if code page gives fault
 if(EPN == 4 || EPN == 5 || EPN == 6 || EPN == 7) then
+
     alias blockNum R2;
     blockNum = [DISK_MAP_TABLE + (10*[SYSTEM_STATUS_TABLE+1]) + EPN];
 

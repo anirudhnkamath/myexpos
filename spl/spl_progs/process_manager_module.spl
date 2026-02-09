@@ -25,6 +25,7 @@ endif;
 
 
 if(R1 == EXIT_PROCESS) then
+
     alias currentPID R2;
 
     // release page table
@@ -127,3 +128,34 @@ endif;
 
 
 // ---------------------------------
+
+
+if(functionNum == GET_PCB_ENTRY) then
+    alias index R1;
+    index = 0;
+
+    // loop through entries and find free
+    while(index < MAX_PROC_NUM) do
+        if([PROCESS_TABLE + (16*index) + 4] == TERMINATED) then
+            break;
+        endif;
+        index = index + 1;
+    endwhile;
+
+    // if full
+    if(index == MAX_PROC_NUM) then
+        R0 = -1;
+        return;
+    endif;
+
+    // pid
+    [PROCESS_TABLE + (16*index) + 1] = index;
+    // state
+    [PROCESS_TABLE + (16*index) + 4] = ALLOCATED;
+    // ptbr and ptlr
+    [PROCESS_TABLE + (16*index) + 14] = PAGE_TABLE_BASE + (20*index);
+    [PROCESS_TABLE + (16*index) + 15] = 10;
+
+    R0 = index;
+    return;
+endif;

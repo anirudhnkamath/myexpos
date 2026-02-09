@@ -1,0 +1,19 @@
+int main()
+{
+decl
+    int temp;
+enddecl
+begin
+    temp = exposcall("Fork");
+
+    if(temp != 0) then
+        //parent
+        temp = exposcall("Exec", "evennos.xsm");
+    else
+        // child
+        temp = exposcall("Exec", "oddnos.xsm");
+    endif;
+
+    return 0;
+end
+}
