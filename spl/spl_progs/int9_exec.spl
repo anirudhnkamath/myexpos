@@ -47,6 +47,7 @@ if(inode_index >= MAX_FILE_NUM || [INODE_TABLE + (16*inode_index) + 0] != EXEC) 
     alias physicalAddrRetVal R3;
     physicalAddrRetVal = [PTBR + (2 * ((userSP-1)/512))] * 512 + ((userSP-1) % 512);
     [physicalAddrRetVal] = -1;
+    SP = userSP;
     ireturn;
 endif;
 

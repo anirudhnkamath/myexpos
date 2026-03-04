@@ -67,12 +67,19 @@ loadi(6, 19);
 loadi(7, 20);
 
 // disk free list
-loadi(2, 15);
-loadi(3, 16);
+loadi(61, 2);
 
 // load fork
 loadi(18, 31);
 loadi(19, 32);
+
+// load shutdown
+loadi(32, 45);
+loadi(33, 46);
+
+// load int11_sync
+loadi(24, 37);
+loadi(25, 38);
 
 
 // ---------------------------------
