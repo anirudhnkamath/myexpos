@@ -81,6 +81,15 @@ loadi(33, 46);
 loadi(24, 37);
 loadi(25, 38);
 
+// load int13_semgetrel
+loadi(28, 41);
+loadi(29, 42);
+
+// int14_semlockunlck
+loadi(30, 43);
+loadi(31, 44);
+
+
 
 // ---------------------------------
 
@@ -159,6 +168,20 @@ R9 = 0;
 while(R9 < 10) do
     [DISK_MAP_TABLE + 10 + R9] = -1;
     R9 = R9 + 1;
+endwhile;
+
+
+// ---------------------------------
+
+
+// initialise semaphore table
+alias i R0;
+i = 0;
+while(i < 32) do
+    [SEMAPHORE_TABLE + i*4] = -1;
+    [SEMAPHORE_TABLE + i*4 + 1] = 0;
+
+    i = i + 1;
 endwhile;
 
 

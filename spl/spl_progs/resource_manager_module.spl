@@ -79,4 +79,65 @@ endif;
 // ---------------------------------
 
 
+if(functionNum == ACQUIRE_SEMAPHORE) then
+
+    // find a free semaphore
+    alias semTableIndex R3;
+    semTableIndex = 0;
+    while(semTableIndex < MAX_SEM_COUNT) do
+        if([SEMAPHORE_TABLE + (4*semTableIndex) + 1] == 0) then
+            break;
+        endif;
+
+        semTableIndex = semTableIndex + 1;
+    endwhile;
+
+    // if no semaphore free
+    if(semTableIndex == -1) then
+        R0 = -1;
+
+    else 
+        // locking pid and process count
+        [SEMAPHORE_TABLE + semTableIndex*4] = -1;
+        [SEMAPHORE_TABLE + semTableIndex*4 + 1] = 1;
+
+        R0 = semTableIndex;
+    endif; 
+
+    return;
+
+endif;
+
+
+// ---------------------------------
+
+
+if(functionNum == RELEASE_SEMAPHORE) then
+    alias semTableIndex R2;
+    alias pid R3;
+
+    // if semaphore is locked by current process  
+    if([SEMAPHORE_TABLE + semTableIndex*4] == pid) then
+        [SEMAPHORE_TABLE + semTableIndex*4] = -1;
+
+        // release all waiting processes
+        alias i R4;
+        i=0;
+        while(i<MAX_PROC_NUM) do
+            if(([PROCESS_TABLE + i*16 + 4] == WAIT_SEMAPHORE) &&  ([PROCESS_TABLE + i*16 + 5] == semTableIndex)) then
+                [PROCESS_TABLE + i*16 + 4] = READY;
+            endif;
+
+            i=i+1;
+        endwhile;
+
+    endif;
+
+    // decrement process count of semaphore
+    [SEMAPHORE_TABLE + semTableIndex*4 + 1] = [SEMAPHORE_TABLE + semTableIndex*4 + 1] - 1;
+
+    return;
+endif;
+
+
 halt;

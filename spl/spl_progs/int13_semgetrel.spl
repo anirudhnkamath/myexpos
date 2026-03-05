@@ -1,0 +1,121 @@
+alias userSP R1;
+userSP = SP;
+
+// switch stacks
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16 ) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1 ] * 16 ) + 11] * 512 - 1;
+
+
+// ---------------------------------
+
+
+// extract syscall number
+alias syscall R2;
+syscall = [([PTBR + ((userSP - 5) / 512) * 2] * 512) + ((userSP - 5) % 512)];
+
+
+// ---------------------------------
+
+
+if(syscall == INT_SEMGET) then
+
+    // mode flag
+    [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 9] = INT_SEMGET;
+
+    alias resourceTable R3;
+    resourceTable = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+    // find free slot in resource table
+    alias resourceIndex R4;
+    resourceIndex = 0;
+    while(resourceIndex < 8) do
+        if([resourceTable + (resourceIndex*2)] == -1) then
+            break;
+        endif;
+        resourceIndex = resourceIndex + 1;
+    endwhile;  
+
+    // no slots left
+    if(resourceIndex >= 8) then
+        [[PTBR + ((userSP - 1) / 512) * 2] * 512 + (userSP - 1) % 512] = -1;
+    
+    // slots left
+    else
+
+        // get a free semephore
+        multipush(R1, R2, R3, R4);
+        R1 = ACQUIRE_SEMAPHORE;
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        call RESOURCE_MANAGER;
+        multipop(R1, R2, R3, R4);
+        alias semTableIndex R0;
+
+        // if no semaphores available
+        if(semTableIndex == -1) then
+            [[PTBR + ((userSP - 1) / 512) * 2] * 512 + (userSP - 1) % 512] = -2;
+        else
+            [resourceTable + (2*resourceIndex)] = SEMAPHORE;
+            [resourceTable + (2*resourceIndex) + 1] = semTableIndex;
+            [[PTBR + ((userSP - 1) / 512) * 2] * 512 + (userSP - 1) % 512] = resourceIndex;
+        endif;
+
+    endif;
+
+endif;
+
+
+// ---------------------------------
+
+
+if(syscall == INT_SEMRELEASE) then
+
+    // mode flag
+    [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 9] = INT_SEMRELEASE;
+
+    alias resourceIndex R3;
+    resourceIndex = [[PTBR + ((userSP - 4) / 512) * 2] * 512 + (userSP - 4) % 512];
+
+    alias resourceTable R4;
+    resourceTable = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+    // if argument invalid
+    if(resourceIndex >= 8 || resourceIndex < 0 || [resourceTable + (2*resourceIndex)] != SEMAPHORE) then
+        [[PTBR + ((userSP - 1) / 512) * 2] * 512 + (userSP - 1) % 512] = -1;
+
+    else 
+
+        // release semaphore
+        multipush(R1, R2, R3, R4);
+        R1 = RELEASE_SEMAPHORE;
+        R2 = [resourceTable + (2*resourceIndex) + 1];
+        R3 = [SYSTEM_STATUS_TABLE + 1];
+        call RESOURCE_MANAGER;
+        multipop(R1, R2, R3, R4);
+
+        // invalidate resource table entry
+        [resourceTable + (2*resourceIndex)] = -1;
+        [resourceTable + (2*resourceIndex) + 1] = -1;
+
+        // ret success
+        [[PTBR + ((userSP - 1) / 512) * 2] * 512 + (userSP - 1) % 512] = 0;
+    
+    endif;
+
+endif;
+
+
+
+// ---------------------------------
+
+
+// reset mode flag
+[PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 9] = 0;
+
+// switch stacks
+SP = userSP;
+
+
+// ---------------------------------
+
+
+ireturn;

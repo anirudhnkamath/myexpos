@@ -21,6 +21,8 @@ set -e
 ./spl spl_progs/fork.spl
 ./spl spl_progs/shutdown.spl
 ./spl spl_progs/int11_sync.spl
+./spl spl_progs/int13_semgetrel.spl
+./spl spl_progs/int14_semlockunlock.spl
 
 
 echo "All SPL files compiled successfully."

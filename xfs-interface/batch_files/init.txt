@@ -1,7 +1,7 @@
 fdisk
 load --os ../spl/spl_progs/os_startup.xsm
 load --library ../expl/library.lib
-load --init ../expl/expl_progs/3forks.xsm
+load --init ../expl/expl_progs/shell.xsm
 load --idle ../expl/expl_progs/idle.xsm
 load --exhandler ../spl/spl_progs/exception_handler.xsm
 load --int=6 ../spl/spl_progs/int6.xsm
@@ -10,6 +10,8 @@ load --int=8 ../spl/spl_progs/fork.xsm
 load --int=9 ../spl/spl_progs/int9_exec.xsm
 load --int=10 ../spl/spl_progs/int10.xsm
 load --int=11 ../spl/spl_progs/int11_sync.xsm
+load --int=13 ../spl/spl_progs/int13_semgetrel.xsm
+load --int=14 ../spl/spl_progs/int14_semlockunlock.xsm
 load --int=15 ../spl/spl_progs/shutdown.xsm
 load --int=timer ../spl/spl_progs/sample_timer.xsm
 load --int=console ../spl/spl_progs/console_interrupt.xsm
@@ -20,7 +22,5 @@ load --module 2 ../spl/spl_progs/memory_manager_module.xsm
 load --module 4 ../spl/spl_progs/device_manager_module.xsm
 load --module 5 ../spl/spl_progs/scheduler_module.xsm
 load --module 7 ../spl/spl_progs/boot_module.xsm
-load --exec ../expl/expl_progs/oddnos.xsm
-load --exec ../expl/expl_progs/evennos.xsm
-load --exec ../expl/expl_progs/pid.xsm
+load --exec ../expl/expl_progs/assg1_22.xsm
 exit

@@ -104,7 +104,14 @@ alias i R6;
 i = 0;
 while(i < 16) do
     [childPPTable + i] = [parentPPTable + i];
-    i = i + 1;
+    [childPPTable + i + 1] = [parentPPTable + i + 1];
+
+    // if semaphore, increment value in semaphore table
+    if([parentPPTable + i] == SEMAPHORE) then
+        [SEMAPHORE_TABLE + [parentPPTable+i]*4 + 1] = [SEMAPHORE_TABLE + [parentPPTable+i]*4 + 1] + 1;
+    endif;
+
+    i = i + 2;
 endwhile;
 
 
