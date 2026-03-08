@@ -1,7 +1,6 @@
 // mode flag to -1
 [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE+1]) + 9] = -1;
 
-
 // ---------------------------------
 
 

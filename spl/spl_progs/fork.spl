@@ -78,8 +78,6 @@ endif;
 // ppid
 [PROCESS_TABLE + (16*childPID) + 2] = [SYSTEM_STATUS_TABLE + 1];
 
-// state
-[PROCESS_TABLE + (16*childPID) + 4] = CREATED;
 
 // get new page for user area
 multipush(R1, R2, R3);
@@ -180,6 +178,13 @@ while(i < 512) do
     [childStack*512 + i] = [parentStack*512 + i];
     i = i + 1;
 endwhile;
+
+
+// ---------------------------------
+
+
+// ready to be scheduled
+[PROCESS_TABLE + (16*childPID) + 4] = CREATED;
 
 
 // ---------------------------------
