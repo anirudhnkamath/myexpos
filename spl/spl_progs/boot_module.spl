@@ -243,4 +243,9 @@ endwhile;
 // ---------------------------------
 
 
+// stage22 - assg
+[DISK_STATUS_TABLE + 5] = 0;
+[DISK_STATUS_TABLE + 6] = 0;
+[DISK_STATUS_TABLE + 7] = 128 - [SYSTEM_STATUS_TABLE + 2];
+
 return;

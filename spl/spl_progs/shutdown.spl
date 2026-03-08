@@ -1,1 +1,10 @@
+print "disk acc";
+print [DISK_STATUS_TABLE + 5];
+
+print "cont swit";
+print [DISK_STATUS_TABLE + 6];
+
+print "max mem";
+print [DISK_STATUS_TABLE + 7];
+
 halt;

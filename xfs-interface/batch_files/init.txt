@@ -22,5 +22,6 @@ load --module 2 ../spl/spl_progs/memory_manager_module.xsm
 load --module 4 ../spl/spl_progs/device_manager_module.xsm
 load --module 5 ../spl/spl_progs/scheduler_module.xsm
 load --module 7 ../spl/spl_progs/boot_module.xsm
-load --exec ../expl/expl_progs/assg1_22.xsm
+load --exec ../expl/expl_progs/asg2_22c.xsm
+load --exec ../expl/expl_progs/asg2_22p.xsm
 exit
