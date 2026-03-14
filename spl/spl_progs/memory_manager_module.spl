@@ -36,13 +36,6 @@ if(functionNum == GET_FREE_PAGE) then
     // store return value
     R0 = freePage;
 
-    // print R0;
-
-    // stage22 - assg
-    if([DISK_STATUS_TABLE + 7] <= 128 - [SYSTEM_STATUS_TABLE + 2]) then
-        [DISK_STATUS_TABLE + 7] = 128 - [SYSTEM_STATUS_TABLE + 2];
-    endif;
-
     return;
 
 endif;

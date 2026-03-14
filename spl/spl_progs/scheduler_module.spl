@@ -74,8 +74,4 @@ endif;
 multipop(BP);
 
 
-// stage22 - assg
-[DISK_STATUS_TABLE + 6] = [DISK_STATUS_TABLE + 6] + 1;
-
-
 return;

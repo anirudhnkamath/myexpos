@@ -96,4 +96,36 @@ endif;
 // ---------------------------------
 
 
+if(functionNum == DISK_STORE) then       
+    alias pageNum R3;
+    alias blockNum R4;
+
+    // get disk
+    multipush(R1, R2, R3, R4);
+    R1 = ACQUIRE_DISK;
+    R2 = currentPID;
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4);
+
+    // disk status table
+    [DISK_STATUS_TABLE + 1] = 1;
+    [DISK_STATUS_TABLE + 2] = pageNum;
+    [DISK_STATUS_TABLE + 3] = blockNum;
+    [DISK_STATUS_TABLE + 4] = currentPID;
+
+    // asynchronour store
+    store(pageNum, blockNum);
+
+    // suspend the process
+    [PROCESS_TABLE + currentPID*16 + 4] = WAIT_DISK;
+    [PROCESS_TABLE + currentPID*16 + 1] = currentPID;
+
+    multipush(R1, R2, R3, R4);
+    call SCHEDULER;
+    multipop(R1, R2, R3, R4);
+
+    return;
+endif;
+
+
 halt;

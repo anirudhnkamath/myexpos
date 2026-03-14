@@ -1,10 +1,69 @@
-print "disk acc";
-print [DISK_STATUS_TABLE + 5];
+// switch stacks
 
-print "cont swit";
-print [DISK_STATUS_TABLE + 6];
+alias userSP R1;
+userSP = SP;
 
-print "max mem";
-print [DISK_STATUS_TABLE + 7];
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16) + 11]*512 - 1;
+
+
+// ---------------------------------
+
+
+// mode flag
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16 ) + 9] = INT_SHUTDOWN;
+
+
+// ---------------------------------
+
+
+// only shell process of root can call shutdown
+if(([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 1] != 1) || ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 3] != 1)) then
+
+    // return failure
+    [[PTBR + 2*((userSP - 1)/512)] * 512 + (userSP - 1) % 512] = -1;
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16 ) + 9] = 0;
+    SP = userSP;
+    ireturn;
+
+else
+
+
+    // write back inode table
+    multipush(R1);
+    R1 = DISK_STORE;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = 59;    
+    R4 = 3; 
+    call DEVICE_MANAGER;
+    R1 = DISK_STORE;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = 60;    
+    R4 = 4; 
+    call DEVICE_MANAGER;
+    multipop(R1);
+    
+    // write back root file
+    multipush(R1);
+    R1 = DISK_STORE;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = 62;    
+    R4 = 5; 
+    call DEVICE_MANAGER;
+    multipop(R1);
+
+    // write back disk free list
+    multipush(R1);
+    R1 = DISK_STORE;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = 61;    
+    R4 = 2; 
+    call DEVICE_MANAGER;  
+    multipop(R1);  
+endif;
+
+
+// ---------------------------------
+
 
 halt;

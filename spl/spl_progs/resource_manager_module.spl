@@ -140,4 +140,67 @@ if(functionNum == RELEASE_SEMAPHORE) then
 endif;
 
 
+// ---------------------------------
+
+
+if(functionNum == ACQUIRE_INODE) then
+    alias inodeIndex R2;
+    alias pid R3;
+
+    // wait in busy loop while it is locked
+    while([FILE_STATUS_TABLE + inodeIndex*4 + 0] != -1) do
+        [PROCESS_TABLE + pid*16 + 4] = WAIT_FILE;
+        [PROCESS_TABLE + pid*16 + 5] = inodeIndex;
+
+        multipush(R1, R2);
+        call SCHEDULER;
+        multipop(R1, R2);
+
+    endwhile;
+
+    // in case the file gets deleted 
+    if([INODE_TABLE + inodeIndex*16 + 1] == -1) then
+        R0 = -1;
+    else
+        // locking pid
+        [FILE_STATUS_TABLE + inodeIndex*4 + 0] = pid;
+        R0 = 0;
+    endif;
+
+    return;
+endif;
+
+
+// ---------------------------------
+
+
+if(functionNum == RELEASE_INODE) then
+    alias inodeIndex R2;
+    alias pid R3;
+
+    // if someone else has locked
+    if([FILE_STATUS_TABLE + inodeIndex*4 + 0] != pid) then
+        R0 = -1;
+    else
+        // unlock the file
+        [FILE_STATUS_TABLE + inodeIndex*4 + 0] = -1;
+
+        // wake all processes waiting for it
+        alias i R4;
+        i = 0;
+        while(i < MAX_PROC_NUM) do
+            if([PROCESS_TABLE + i*16 + 4] == WAIT_FILE && [PROCESS_TABLE + i*16 + 5] == inodeIndex) then
+                [PROCESS_TABLE + i*16 + 4] = READY;
+                [PROCESS_TABLE + i*16 + 5] = -1;
+            endif;
+            i = i + 1;
+        endwhile;
+
+        R0 = 0;
+    endif;
+
+    return;
+endif;
+
+
 halt;

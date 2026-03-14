@@ -89,6 +89,12 @@ loadi(29, 42);
 loadi(30, 43);
 loadi(31, 44);
 
+// int4_createdelete file
+loadi(10, 23);
+loadi(11, 24);
+
+// load root file
+loadi(62, 5);
 
 
 // ---------------------------------
@@ -145,6 +151,8 @@ PTLR = 10;
 [PROCESS_TABLE + 16 + 15] = 10;
 // state
 [PROCESS_TABLE + 16 + 4] = CREATED;
+// user root
+[PROCESS_TABLE + 16 + 3] = 1;
 
 
 // ---------------------------------
@@ -159,19 +167,12 @@ while(R9 < 16) do
     R9 = R9 + 1;
 endwhile;
 
-
-// ---------------------------------
-
-
 // disk map table initialise 
 R9 = 0;
 while(R9 < 10) do
     [DISK_MAP_TABLE + 10 + R9] = -1;
     R9 = R9 + 1;
 endwhile;
-
-
-// ---------------------------------
 
 
 // initialise semaphore table
@@ -184,6 +185,24 @@ while(i < 32) do
     i = i + 1;
 endwhile;
 
+// initialise file status table
+i = 0;
+while(i < 60) do
+    [FILE_STATUS_TABLE + i*4 + 0] = -1;
+    [FILE_STATUS_TABLE + i*4 + 1] = -1;
+
+    i = i + 1;
+endwhile;
+
+// initialise buffer table
+i = 0;
+while(i < 4) do
+    [BUFFER_TABLE + i*4 + 0] = -1;
+    [BUFFER_TABLE + i*4 + 1] = 0;
+    [BUFFER_TABLE + i*4 + 2] = -1;
+    
+    i = i + 1;
+endwhile;
 
 // ---------------------------------
 
@@ -242,10 +261,5 @@ endwhile;
 
 // ---------------------------------
 
-
-// stage22 - assg
-[DISK_STATUS_TABLE + 5] = 0;
-[DISK_STATUS_TABLE + 6] = 0;
-[DISK_STATUS_TABLE + 7] = 128 - [SYSTEM_STATUS_TABLE + 2];
 
 return;

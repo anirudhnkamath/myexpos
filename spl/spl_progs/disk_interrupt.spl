@@ -36,9 +36,5 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
 // ---------------------------------
 
 
-// stage22 - assg
-[DISK_STATUS_TABLE + 5] = [DISK_STATUS_TABLE + 5] + 1;
-
-
 ireturn;
 

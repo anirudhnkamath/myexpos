@@ -2,27 +2,12 @@
 
 set -e
 
-./spl spl_progs/boot_module.spl
-./spl spl_progs/os_startup.spl
-./spl spl_progs/console_interrupt.spl
-./spl spl_progs/device_manager_module.spl
-./spl spl_progs/disk_interrupt.spl
-./spl spl_progs/exception_handler.spl
-./spl spl_progs/haltprog.spl
-./spl spl_progs/int6.spl
-./spl spl_progs/int7.spl
-./spl spl_progs/int9_exec.spl
-./spl spl_progs/int10.spl
-./spl spl_progs/memory_manager_module.spl
-./spl spl_progs/process_manager_module.spl
-./spl spl_progs/resource_manager_module.spl
-./spl spl_progs/scheduler_module.spl
-./spl spl_progs/sample_timer.spl
-./spl spl_progs/fork.spl
-./spl spl_progs/shutdown.spl
-./spl spl_progs/int11_sync.spl
-./spl spl_progs/int13_semgetrel.spl
-./spl spl_progs/int14_semlockunlock.spl
+SPL_COMPILER=./spl
+DIR=./spl_progs
 
+for file in "$DIR"/*.spl
+do
+    $SPL_COMPILER "$file"
+done
 
 echo "All SPL files compiled successfully."
