@@ -24,4 +24,5 @@ load --module 4 ../spl/spl_progs/device_manager_module.xsm
 load --module 5 ../spl/spl_progs/scheduler_module.xsm
 load --module 7 ../spl/spl_progs/boot_module.xsm
 load --exec ../expl/expl_progs/crtFile.xsm
+load --exec ../expl/expl_progs/dltFile.xsm
 exit
