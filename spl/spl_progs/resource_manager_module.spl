@@ -203,4 +203,64 @@ if(functionNum == RELEASE_INODE) then
 endif;
 
 
-halt;
+// ---------------------------------
+
+
+if(functionNum == ACQUIRE_BUFFER) then
+    alias bufferIndex R2;
+    alias pid R3;
+
+    // busy loop
+    while([BUFFER_TABLE + bufferIndex*4 + 2] != -1) do
+
+        // update the state
+        [PROCESS_TABLE + (pid*16) + 4] = WAIT_BUFFER;
+        [PROCESS_TABLE + (pid*16) + 5] = bufferIndex;
+
+        multipush(R1,R2,R3);
+        call SCHEDULER;
+        multipop(R1,R2,R3);
+
+    endwhile;
+    
+    // update locking pid
+    [BUFFER_TABLE + bufferIndex*4 + 2] = pid;
+
+    return;
+endif;
+
+
+// ---------------------------------
+
+
+if(functionNum == RELEASE_BUFFER) then
+    alias bufferIndex R2;
+    alias pid R3;
+
+    // locked by some other process
+    if([BUFFER_TABLE + bufferIndex*4 + 2] != pid) then
+        R0 = -1;
+        return;
+    endif;
+
+    // update locking pid
+    [BUFFER_TABLE + bufferIndex*4 + 2] = -1;
+
+    // wake all waiting processes
+    alias i R4;
+    i = 0;
+    while(i<MAX_PROC_NUM) do
+        if(([PROCESS_TABLE + i*16 + 4] == WAIT_BUFFER) && ([PROCESS_TABLE + i*16 + 5] == bufferIndex)) then
+            [PROCESS_TABLE + i*16 + 4] = READY;
+            [PROCESS_TABLE + i*16 + 5] = -1;
+        endif;
+        
+        i = i + 1;
+    endwhile;
+
+    R0 = 0;
+    return;
+endif;
+
+
+

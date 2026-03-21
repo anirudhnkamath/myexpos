@@ -1,19 +1,28 @@
-// mode flag
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 7;
+// aliases 
 
-
-// ---------------------------------
-
-
-// save user sp
-alias userSP R0;
+alias userSP R1;
 userSP = SP;
 
+alias mode R2;
+mode = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9];
+
+alias fileDescriptor R3;
+fileDescriptor = [([PTBR + 2 * ((userSP - 4)/ 512)] * 512) + ((userSP - 4) % 512)];
+
+alias retAddr R4;
+retAddr = ([PTBR + 2 * ((userSP - 1)/ 512)] * 512) + ((userSP - 1) % 512);
+
+alias bufferLogicalAddr R5;
+bufferLogicalAddr = [([PTBR + 2 * ((userSP - 3)/ 512)] * 512) + ((userSP - 3) % 512)];
+
 
 // ---------------------------------
 
 
-// switch to kernel stack
+// update mode flag
+[mode] = 7;
+
+// switch stacks
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11] * 512 - 1;
 
@@ -21,62 +30,155 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11] * 512 - 1;
 // ---------------------------------
 
 
-// get file descriptor
-alias physicalPageNum R1;
-alias offset R2;
-alias fileDescPhysicalAddr R3;
+// if input is from console
+if(fileDescriptor == -1) then
 
-physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
-offset = (userSP - 4) % 512;
-
-fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
-
-alias fileDescriptor R4;
-fileDescriptor=[fileDescPhysicalAddr];
-
-
-// ---------------------------------
-
-
-if(fileDescriptor != -1) then
-
-    alias physicalAddrRetVal R5;
-    physicalAddrRetVal = [PTBR + (2 * ((userSP-1)/512))] * 512 + ((userSP-1) % 512);
-    [physicalAddrRetVal] = -1;
-    
-else 
-
-    alias userSP_physical R5;
-    userSP_physical = [PTBR + (2 * ((userSP-3)/512))] * 512 + ((userSP-3) % 512);
-
-    // call device manager
+    // call TERMINAL_READ
     multipush(R0, R1, R2, R3, R4, R5);
-    R1 = 4;
+    R1 = TERMINAL_READ;
     R2 = [SYSTEM_STATUS_TABLE + 1];
-    R3 = [userSP_physical];
-
+    R3 = bufferLogicalAddr;
     call DEVICE_MANAGER;
     multipop(R0, R1, R2, R3, R4, R5);
 
     // return success
-    alias physicalAddrRetVal R6;
-    physicalAddrRetVal = [PTBR + (2 * ((userSP-1)/512))] * 512 + ((userSP-1) % 512);
-    [physicalAddrRetVal] = 0;
+    [retAddr] = 0;
+
+
+// if input from file 
+else
+
+    // invalid fileDescriptor
+    if(fileDescriptor < 0 || fileDescriptor > 7) then
+        [mode] = 0;
+        [retAddr] = -1;
+        SP = userSP;
+        ireturn;
+    endif;
+    
+    alias resourceTable R6;
+    resourceTable = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+    // if resource isnot a file  
+    if([resourceTable + fileDescriptor*2] != FILE) then
+        [retAddr] = -1;
+        [mode] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+    alias openFileIndex R7;
+    openFileIndex = [resourceTable + fileDescriptor*2 + 1];
+    alias inodeIndex R8;
+    inodeIndex = [OPEN_FILE_TABLE + openFileIndex*4];
+    
+    // lock the inode before reading
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+    R1 = ACQUIRE_INODE;
+    R2 = inodeIndex;
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+
+    // if locking fails ( deleted )
+    if(R0 == -1) then
+        [retAddr] = -1;
+        [mode] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+    alias lseekAddr R9;
+    lseekAddr = OPEN_FILE_TABLE + openFileIndex*4 + 2;
+
+    alias bufferPhysicalAddr R10;
+    bufferPhysicalAddr = [PTBR + 2*(bufferLogicalAddr/512)] * 512 + (bufferLogicalAddr%512);
+    
+    
+    // if reading from root file
+    if([OPEN_FILE_TABLE + (openFileIndex*4)] == INODE_ROOT) then
+
+        // if lseek is in the end
+        if([lseekAddr] == 480) then
+            multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+            R1 = RELEASE_INODE;
+            R2 = inodeIndex;
+            R3 = [SYSTEM_STATUS_TABLE + 1];
+            call RESOURCE_MANAGER;
+            multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+            // error code
+            [retAddr] = -2;
+            [mode] = 0;
+            SP = userSP;
+            ireturn;
+        endif;
+
+        // read the word from file to addr
+        [bufferPhysicalAddr] = [ROOT_FILE + [lseekAddr]];
+        [lseekAddr] = [lseekAddr] + 1;
+
+        [retAddr] = 0;
+    
+    // reading from normal data file
+    else
+
+        // if end of file
+        if([lseekAddr] == [INODE_TABLE + inodeIndex*16 + 2]) then
+            multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+            R1 = RELEASE_INODE;
+            R2 = inodeIndex;
+            R3 = [SYSTEM_STATUS_TABLE + 1];
+            call RESOURCE_MANAGER;
+            multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+            // err code
+            [retAddr] = -2;
+            [mode] = 0;
+            SP = userSP;
+            ireturn;
+        endif;
+
+        alias blockNum R11;
+        blockNum = [INODE_TABLE + inodeIndex*16 + 8 + ([lseekAddr]/512)];
+
+        alias blockOffset R12;
+        blockOffset = [lseekAddr]%512;
+
+        // read it from the buffer
+        multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+        R1 = BUFFERED_READ;
+        R2 = blockNum;
+        R3 = blockOffset;
+        R4 = bufferPhysicalAddr;
+        call FILE_MANAGER;
+        multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+
+        // increment lseek
+        [lseekAddr] = [lseekAddr] + 1;
+
+        // ret success
+        [retAddr] = 0;
+    endif;
+
+
+    // release inode lock
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+    R1 = RELEASE_INODE;
+    R2 = inodeIndex;
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
 
 endif;
-    
 
 // ---------------------------------
 
 
 // mode flag reset to 0
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+[mode] = 0;
 
-
-// ---------------------------------
-
-
-// restore user sp
+// switch stacks
 SP = userSP;
 
 

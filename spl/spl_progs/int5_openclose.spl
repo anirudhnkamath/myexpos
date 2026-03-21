@@ -1,0 +1,139 @@
+// aliases
+
+alias userSP R1;
+userSP = SP;
+
+alias pid R2;
+pid = [SYSTEM_STATUS_TABLE + 1];
+
+alias retAddr R3;
+retAddr = [PTBR + 2*((userSP - 1)/512)] * 512 + (userSP - 1) % 512;
+
+alias syscall R4;
+syscall = [[PTBR + 2*((userSP - 5)/512)] * 512 + (userSP - 5) % 512];
+
+alias mode R5;
+mode = PROCESS_TABLE + (pid*16) + 9;
+
+
+// ---------------------------------
+
+
+// mode flag 
+[mode] = syscall;
+
+// switch stacks
+[PROCESS_TABLE + (pid*16) + 13] = SP;
+SP = [PROCESS_TABLE + (pid*16) + 11] * 512 - 1;
+
+
+// ---------------------------------
+
+if(syscall == INT_OPEN) then
+
+    // extract filename
+    alias fileName R6;
+    fileName = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+
+    alias i R7;
+    i=0;
+    alias resourceIndex R8;
+    resourceIndex = -1;
+
+    alias resourceTable R9;
+    resourceTable = [PROCESS_TABLE + (pid*16) + 11] * 512 + RESOURCE_TABLE_OFFSET;
+    
+    // find a free entry in resource table
+    while(i < 8) do   
+        if([resourceTable + i*2] == -1) then 
+            resourceIndex = i;
+            break;
+        endif;
+        i = i + 1;
+    endwhile;
+
+    // if resource table is full, return
+    if(resourceIndex == -1) then
+        [retAddr] = -3;
+        [mode] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+    // call open() function to open and return index in open file table
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+    R1 = OPEN;
+    R2 = fileName;
+    call FILE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+
+    alias openFileInd R10;
+    openFileInd = R0;
+
+    // in case unable to open the file
+    if(openFileInd == -1 || openFileInd == -2) then
+        [retAddr] = openFileInd;
+        [mode] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+    // set resource table entries
+    [resourceTable + resourceIndex*2] = FILE;
+    [resourceTable + resourceIndex*2 + 1] = openFileInd;
+
+    [retAddr] = resourceIndex;
+endif;
+
+
+// ---------------------------------
+
+
+if(syscall == INT_CLOSE) then
+
+    alias resourceIndex R6;
+    resourceIndex = [[PTBR + 2* ((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+
+    alias resourceTable R7;
+    resourceTable = [PROCESS_TABLE + (pid*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+
+    // if descriptor invalid
+    if(resourceIndex < 0 || resourceIndex > 7 || [resourceTable + (2*resourceIndex)] != FILE) then
+        [retAddr] = -1;
+
+    else
+
+        alias openFileIndex R8;
+        openFileIndex = [resourceTable + resourceIndex*2 + 1];
+
+        // close function call
+        multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+        R1 = CLOSE;
+        R2 = openFileIndex;
+        call FILE_MANAGER;
+        multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+
+        // invalidate resource table entry 
+        [resourceTable + resourceIndex*2] = -1;
+        [resourceTable + resourceIndex*2 + 1] = -1;
+
+        [retAddr] = 0;
+    endif;
+endif;
+
+
+// ---------------------------------
+
+
+// reset mode flag
+[mode] = 0;
+
+// switch stacks
+SP = userSP;
+
+
+// ---------------------------------
+
+
+ireturn;

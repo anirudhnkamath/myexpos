@@ -5,6 +5,7 @@ load --init ../expl/expl_progs/shell.xsm
 load --idle ../expl/expl_progs/idle.xsm
 load --exhandler ../spl/spl_progs/exception_handler.xsm
 load --int=4 ../spl/spl_progs/int4_createdel.xsm
+load --int=5 ../spl/spl_progs/int5_openclose.xsm
 load --int=6 ../spl/spl_progs/int6.xsm
 load --int=7 ../spl/spl_progs/int7.xsm
 load --int=8 ../spl/spl_progs/fork.xsm
@@ -20,9 +21,13 @@ load --int=disk ../spl/spl_progs/disk_interrupt.xsm
 load --module 0 ../spl/spl_progs/resource_manager_module.xsm
 load --module 1 ../spl/spl_progs/process_manager_module.xsm
 load --module 2 ../spl/spl_progs/memory_manager_module.xsm
+load --module 3 ../spl/spl_progs/file_manager_module.xsm
 load --module 4 ../spl/spl_progs/device_manager_module.xsm
 load --module 5 ../spl/spl_progs/scheduler_module.xsm
 load --module 7 ../spl/spl_progs/boot_module.xsm
 load --exec ../expl/expl_progs/crtFile.xsm
 load --exec ../expl/expl_progs/dltFile.xsm
+load --exec ../expl/expl_progs/fileRead.xsm
+load --data ./dat_files/sample.dat
+load --data ./dat_files/numbers.dat
 exit
