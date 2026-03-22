@@ -1,0 +1,41 @@
+int main() {
+decl
+    int temp, fileDesc, semId, pid, status;
+    string fileName, data;
+enddecl
+begin
+    temp = exposcall("Write", -2, "Enter Name:");
+    temp = exposcall("Read", -1, fileName);
+
+    fileDesc = exposcall("Open", fileName);
+    semId = exposcall("Semget");
+
+    if (fileDesc >= 0 AND semId >= 0) then
+        pid = exposcall("Fork");
+
+        while(1 == 1) do
+            temp = exposcall("SemLock", semId);
+            
+            status = exposcall("Read", fileDesc, data);
+            
+            if (status != 0) then
+                temp = exposcall("SemUnLock", semId);
+                break;
+            endif;
+
+
+            temp = exposcall("Write", -2, data);
+            temp = exposcall("SemUnLock", semId);
+        endwhile;
+
+        if (pid != 0) then
+            temp = exposcall("Semrelease", semId);
+            temp = exposcall("Close", fileDesc);
+        endif;
+    else
+        temp = exposcall("Write", -2, "Open/Sem Error");
+    endif;
+
+    return 0;
+end
+}

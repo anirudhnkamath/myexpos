@@ -27,7 +27,7 @@ load --module 5 ../spl/spl_progs/scheduler_module.xsm
 load --module 7 ../spl/spl_progs/boot_module.xsm
 load --exec ../expl/expl_progs/crtFile.xsm
 load --exec ../expl/expl_progs/dltFile.xsm
-load --exec ../expl/expl_progs/fileRead.xsm
+load --exec ../expl/expl_progs/forkRead.xsm
 load --data ./dat_files/sample.dat
 load --data ./dat_files/numbers.dat
 exit
