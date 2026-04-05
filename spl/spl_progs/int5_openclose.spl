@@ -126,6 +126,104 @@ endif;
 // ---------------------------------
 
 
+if(syscall == INT_SEEK) then
+
+    alias fd R6;
+    fd = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+    alias offset R7;
+    offset = [[PTBR + 2*((userSP - 3)/512)] * 512 + (userSP - 3) % 512];
+
+    // invalid fd, return -1
+    if(fd<0 || fd>7) then
+        [retAddr] = -1;
+    
+    else
+        alias resourceTable R8;
+        resourceTable = [PROCESS_TABLE + (pid*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
+
+        // if resource is not file
+        if([resourceTable + fd*2] != FILE) then
+            [retAddr] = -1;
+            [mode] = 0;
+            SP = userSP;
+            ireturn;
+        endif;
+
+        alias openFileIndex R9;
+        openFileIndex = [resourceTable + fd*2 + 1];
+        alias inodeIndex R10;
+        inodeIndex = [OPEN_FILE_TABLE + openFileIndex*4];
+
+        // acquire the inode
+        multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+        R1 = ACQUIRE_INODE;
+        R2 = inodeIndex;
+        R3 = pid;
+        call RESOURCE_MANAGER;
+        multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+        // locking fails due to delete
+        if(R0 == -1) then
+            [retAddr] = -1;
+            [mode] = 0;
+            SP = userSP;
+            ireturn;
+        endif;
+
+        alias lseek R11;
+        lseek = [OPEN_FILE_TABLE + openFileIndex*4 + 2];
+
+        // take file size from inode table
+        alias fileSize R12;
+        if([OPEN_FILE_TABLE + (openFileIndex*4) + 0] == INODE_ROOT) then
+            fileSize = 480;
+        else
+            fileSize = [INODE_TABLE + inodeIndex*16 + 2];
+        endif;
+
+        // invalid offset
+        if(lseek + offset < 0) then
+            multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+            R1 = RELEASE_INODE;
+            R2 = inodeIndex;
+            R3 = pid;
+            call RESOURCE_MANAGER;
+            multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+
+            [retAddr] = -2;
+            [mode] = 0;
+            SP = userSP;
+            ireturn;
+        endif;
+
+        // if offset 0, lseek 0
+        if(offset == 0) then
+            [OPEN_FILE_TABLE + openFileIndex*4 + 2] = 0;
+
+        // else lseek is min(filesize, lseek+offset)
+        else
+            if (lseek + offset > fileSize) then
+                [OPEN_FILE_TABLE + openFileIndex*4 + 2] = fileSize;
+            else
+                [OPEN_FILE_TABLE + openFileIndex*4 + 2] = lseek + offset;
+            endif;
+        endif;
+        
+        multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+        R1 = RELEASE_INODE;
+        R2 = inodeIndex;
+        R3 = pid;
+        call RESOURCE_MANAGER;
+        multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12);
+
+        [retAddr] = 0;
+    endif;
+endif;
+
+
+// ---------------------------------
+
+
 // reset mode flag
 [mode] = 0;
 

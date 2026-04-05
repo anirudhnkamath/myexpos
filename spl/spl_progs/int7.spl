@@ -1,19 +1,29 @@
-// mode flag
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
 
+// aliases
 
-// ---------------------------------
-
-
-// save user sp
-alias userSP R0;
+alias userSP R1;
 userSP = SP;
 
+alias retAddr R2;
+retAddr = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
+
+alias wordAddr R3;
+wordAddr = [PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512);
+
+alias fileDescriptor R4;
+fileDescriptor = [([PTBR + 2 * ((userSP - 4)/ 512)] * 512) + ((userSP - 4) % 512)];
+
+alias modeAddr R5;
+modeAddr = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9;
+
 
 // ---------------------------------
 
 
-// switch to kernel stack
+// mode flag
+[modeAddr] = INT_WRITE;
+
+// switch stacks
 [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 
@@ -21,52 +31,151 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 // ---------------------------------
 
 
-// get the file descriptor
-alias physicalPageNum R1;
-alias offset R2;
-alias fileDescPhysicalAddr R3;
+// terminal write
+if(fileDescriptor == -2) then
 
-physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
-offset = (userSP - 4) % 512;
+    multipush(R0, R1, R2, R3, R4, R5);
+    R1 = TERMINAL_WRITE;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = [wordAddr];
+    call DEVICE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5);
 
-fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
-
-alias fileDescriptor R4;
-fileDescriptor=[fileDescPhysicalAddr];
-
-
-// ---------------------------------
-
-
-// check file descriptor
-if (fileDescriptor != -2) then
-
-    // invalid ret val
-    alias physicalAddrRetVal R5;
-    physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
-    [physicalAddrRetVal] = -1;
+    [retAddr] = 0;
 
 else
 
-    // get word and print
-    alias word R5;
-    word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+    // fd has valid range
+    if(fileDescriptor < 0 || fileDescriptor > 7) then
+        [retAddr] = -1;
+        [modeAddr] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
 
-    // set up arguments for device manager and call it
+    alias resourceTable R6;
+    resourceTable = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
 
-    multipush(R0, R1, R2, R3, R4, R5);
-    
-    R1 = 3;
-    R2 = [SYSTEM_STATUS_TABLE + 1];
-    R3 = word;
+    // if not file, return failure
+    if([resourceTable + fileDescriptor*2] != FILE) then
+        [retAddr] = -1;
+        [modeAddr] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
 
-    call DEVICE_MANAGER;
 
-    multipop(R0, R1, R2, R3, R4, R5);
+    alias openFileInd R7;
+    openFileInd = [resourceTable + fileDescriptor*2 + 1];
+    alias inodeInd R8;
+    inodeInd = [OPEN_FILE_TABLE + openFileInd*4];
 
-    alias physicalAddrRetVal R6;
-    physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
-    [physicalAddrRetVal] = 0;
+    // if not owner or not root, permission denied
+    if(([PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 3] != 1) && ([INODE_TABLE + inodeInd*16 + 3] != [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 3])) then
+        [retAddr] = -3;
+        [modeAddr] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+
+    // lock inode
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8);
+    R1 = ACQUIRE_INODE;
+    R2 = inodeInd;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8);
+
+    // lock fails due to delete
+    if(R0 == -1) then
+        [retAddr] = -1;
+        [modeAddr] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+    // get lseek address
+    alias lseekAddr R9;
+    lseekAddr = OPEN_FILE_TABLE + openFileInd*4 + 2;
+
+    // if file full, release lock and return
+    if([lseekAddr] == MAX_FILE_SIZE) then
+        multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+        R1 = RELEASE_INODE;
+        R2 = inodeInd;
+        R3 = [SYSTEM_STATUS_TABLE+1];
+        call RESOURCE_MANAGER;
+        multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+
+        [retAddr] = -2;
+        [modeAddr] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+
+    // if new block is needed
+    if([lseekAddr] % 512 == 0 && [INODE_TABLE + inodeInd*16 + 2] == [lseekAddr]) then
+
+        multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+        R1 = GET_FREE_BLOCK;
+        call MEMORY_MANAGER;
+        multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+
+        // block allocation fails
+        if(R0 == -1) then
+            multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+            R1 = RELEASE_INODE;
+            R2 = inodeInd;
+            R3 = [SYSTEM_STATUS_TABLE+1];
+            call RESOURCE_MANAGER;
+            multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9);
+
+            [retAddr] = -2;
+            [modeAddr] = 0;
+            SP = userSP;
+            ireturn;
+
+        else
+            // update inode table with new block
+            [INODE_TABLE + inodeInd*16 + 8 + ([lseekAddr]/512)] = R0;
+        endif;
+    endif;
+
+
+    alias blockNum R10;
+    blockNum = [INODE_TABLE + inodeInd*16 + 8 + ([lseekAddr]/512)];
+
+    alias blockOffset R11;
+    blockOffset = [lseekAddr]%512;
+
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11);
+    R4 = [wordAddr];
+    R1 = BUFFERED_WRITE;
+    R2 = blockNum;
+    R3 = blockOffset;
+    call FILE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11);
+
+    // if filesize increases, update it
+    if([lseekAddr] == [INODE_TABLE + inodeInd*16 + 2]) then
+        [INODE_TABLE + inodeInd*16 + 2] = [INODE_TABLE + inodeInd*16 + 2] + 1;
+        [ROOT_FILE + inodeInd*8 + 1] = [ROOT_FILE + inodeInd*8 + 1] + 1;
+    endif;
+
+    // update lseek
+    [lseekAddr] = [lseekAddr] + 1;
+
+    // release inode
+    multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11);
+    R1 = RELEASE_INODE;
+    R2 = inodeInd;
+    R3 = [SYSTEM_STATUS_TABLE+1];
+    call RESOURCE_MANAGER;
+    multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11);
+
+    [retAddr] = 0;
 
 endif;
 
@@ -77,12 +186,8 @@ endif;
 // reset user sp
 SP = userSP;
 
-
-// ---------------------------------
-
-
 // reset mode flag
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+[modeAddr] = 0;
 
 
 // ---------------------------------

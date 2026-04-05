@@ -9,7 +9,8 @@ enddecl
 begin
     while(1 == 1) do
 
-        temp = exposcall("Write",-2,"---Enter---");
+        temp = exposcall("Write",-2," ");
+        temp = exposcall("Write",-2,"Enter Cmd:");
         temp = exposcall("Read",-1, input);
 
         if(input == "Shutdown") then

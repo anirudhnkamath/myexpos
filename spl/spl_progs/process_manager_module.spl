@@ -212,3 +212,59 @@ if(functionNum == GET_PCB_ENTRY) then
     R0 = index;
     return;
 endif;
+
+
+// ---------------------------------
+
+
+if(functionNum == KILL_ALL) then
+    alias pid R2;
+
+    // lock all files present
+    alias i R3;
+    i = 0;
+    while(i < MAX_FILE_NUM) do
+        // if valid file
+        if([INODE_TABLE + i*16 + 1] != -1) then 
+            multipush(R1,R2,R3);
+            R1 = ACQUIRE_INODE;
+            R2 = i;
+            R3 = pid;
+            call RESOURCE_MANAGER;
+            multipop(R1,R2,R3);
+        endif;
+
+        i = i + 1;
+    endwhile;
+
+    // exit all process except idle, init and cur process
+    i = 2;
+    while(i<MAX_PROC_NUM) do
+        if([PROCESS_TABLE + i*16 + 1] != pid && [PROCESS_TABLE + 16*i + 4] != TERMINATED) then
+            multipush(R1,R2,R3);
+            R1 = EXIT_PROCESS;
+            R2 = i;
+            call PROCESS_MANAGER;
+            multipop(R1,R2,R3);
+        endif;
+
+        i = i + 1;
+    endwhile;
+
+    // release all the files 
+    i = 0;
+    while(i<MAX_FILE_NUM) do
+        if([INODE_TABLE + i*16 + 1] != -1) then 
+            multipush(R1,R2,R3);
+            R1 = RELEASE_INODE;
+            R2 = i;
+            R3 = pid;
+            call RESOURCE_MANAGER;
+            multipop(R1,R2,R3);
+        endif;
+
+        i = i + 1;
+    endwhile;
+
+    return;
+endif;
