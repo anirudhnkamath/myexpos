@@ -31,5 +31,6 @@ load --exec ../expl/expl_progs/ls.xsm
 load --exec ../expl/expl_progs/cp.xsm
 load --exec ../expl/expl_progs/cat.xsm
 load --exec ../expl/expl_progs/rm.xsm
+load --exec ../expl/expl_progs/rvrsRead.xsm
 load --data ../xfs-interface/dat_files/sample.dat
 exit

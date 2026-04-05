@@ -151,6 +151,7 @@ if(functionNum == GET_FREE_BLOCK) then
 
     while(freeBlock < DISK_SWAP_AREA) do
         if([DISK_FREE_LIST + freeBlock] == 0) then
+            [DISK_FREE_LIST + freeBlock] = 1;
             R0 = freeBlock;
             return;
         endif;

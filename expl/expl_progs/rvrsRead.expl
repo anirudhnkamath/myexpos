@@ -1,0 +1,47 @@
+int main(){
+    decl 
+        int fd,temp,permission,num;
+        string fileName,word;
+    enddecl
+
+    begin
+        temp = exposcall("Write",-2,"FileName : ");
+        temp = exposcall("Read",-1,fileName);
+        temp = exposcall("Write",-2,"permission : ");
+        temp = exposcall("Read",-1,permission);
+
+        temp = exposcall("Create",fileName,permission);
+        if(temp == -1) then
+            temp = exposcall("Write",-2,"noSpace");
+        else
+            fd = exposcall("Open",fileName);
+
+            if(fd < 0) then
+                temp = exposcall("Write",-2,"error");
+            else
+                num = 1;
+                while(num <= 1100) do
+                    temp = exposcall("Write",fd,num);
+                    num = num + 1;
+                endwhile;
+                
+                while(1 == 1) do
+                    temp = exposcall("Seek",fd,-1);
+                    if(temp == -2) then
+                        break;
+                    endif;
+
+                    temp = exposcall("Read",fd,word);
+                    if(temp == -2) then
+                        break;
+                    endif;
+                    temp = exposcall("Write", -2, word);
+                    temp = exposcall("Seek",fd,-1);
+                endwhile;
+                
+            endif;
+        endif;
+
+        return 0;
+    end
+}
