@@ -1,15 +1,16 @@
+//BOOT modules
+loadi(54,67);
+loadi(55,68);
 
-
-// loading boot module
-loadi(54, 67);
-loadi(55, 68);
+// idle process
+loadi(69,11);
 
 
 // ---------------------------------
 
 
-// kernel stack of idle
-SP = 82*512 - 1;
+//set sp to kernel stack of idle process
+SP=(82*512)-1;
 
 call BOOT_MODULE;
 
@@ -17,75 +18,63 @@ call BOOT_MODULE;
 // ---------------------------------
 
 
-// page table for idle process
-PTBR = PAGE_TABLE_BASE;
-PTLR = 10;
+//set up page table entries
+PTBR=PAGE_TABLE_BASE;
+PTLR=10;
 
-// library
-[PTBR+0] = 63;
-[PTBR+1] = "0100";
-[PTBR+2] = 64;
-[PTBR+3] = "0100";
+[PTBR+0]=63;
+[PTBR+1]="0100";
+[PTBR+2]=64;
+[PTBR+3]="0100";
 
-// heap
-[PTBR+4] = -1;
-[PTBR+5] = "0000";
-[PTBR+6] = -1;
-[PTBR+7] = "0000";
+[PTBR+4]=-1;
+[PTBR+5]="0000";
+[PTBR+6]=-1;
+[PTBR+7]="0000";
 
-// code
-[PTBR+8] = 69;
-[PTBR+9] = "0100";
-[PTBR+10] = 70;
-[PTBR+11] = "0100";
-[PTBR+12] = -1;
-[PTBR+13] = "0000";
-[PTBR+14] = -1;
-[PTBR+15] = "0000";
+[PTBR+8]=69;
+[PTBR+9]="0100";
+[PTBR+10]=-1;
+[PTBR+11]="0000";
+[PTBR+12]=-1;
+[PTBR+13]="0000";
+[PTBR+14]=-1;
+[PTBR+15]="0000";
 
-// stack
-[PTBR+16] = 81;
-[PTBR+17] = "0110";
-[PTBR+18] = -1;
-[PTBR+19] = "0000";
+[PTBR+16]=70;
+[PTBR+17]="0110";
+[PTBR+18]=-1;
+[PTBR+19]="0000";
 
-
-// ---------------------------------
-
-
-// set up process table of idle
-// user area page
-[PROCESS_TABLE + 11] = 82;
-// pid
-[PROCESS_TABLE + 1] = 0;
-// uptr
-[PROCESS_TABLE + 13] = 8*512;
-// kptr
-[PROCESS_TABLE + 12] = 0;
-// ptbr
-[PROCESS_TABLE + 14] = PAGE_TABLE_BASE;
-// ptlr
-[PROCESS_TABLE + 15] = 10;
-// state
-[PROCESS_TABLE + 4] = RUNNING;
+//SET UP PROCESS TABLE FOR IDLE
+[PROCESS_TABLE+1]=0;
+[PROCESS_TABLE+3]=0;
+[PROCESS_TABLE+4]=RUNNING;
+[PROCESS_TABLE+11]=76;
+[PROCESS_TABLE+12]=0;
+[PROCESS_TABLE+13]=8*512;
+[PROCESS_TABLE+14]=PAGE_TABLE_BASE;
+[PROCESS_TABLE+15]=10;
 
 
 // ---------------------------------
 
 
-// update system status table
-[SYSTEM_STATUS_TABLE + 1] = 0;
+//SYSTEM STATUS TABLE -> IDLE 
+[SYSTEM_STATUS_TABLE+1]=0;
 
 
 // ---------------------------------
 
 
-// push ip in idle stack and update sp
-[81*512] = [69*512 + 1];
-SP = 8*512;
+//Transfer the entry point value from the header of the idle process to the top of the user stack of the idle process
+[70*512]=[69*512+1];
+
+SP=8*512;
 
 
 // ---------------------------------
 
 
 ireturn;
+

@@ -1,0 +1,257 @@
+// alises 
+
+alias userSP R1;
+userSP = SP;
+
+alias pid R2;
+pid = [SYSTEM_STATUS_TABLE + 1];
+
+alias retAddr R3;
+retAddr = [PTBR + 2*((userSP - 1)/512)] * 512 + (userSP - 1) % 512;
+
+alias syscall R4;
+syscall = [[PTBR + 2*((userSP - 5)/512)] * 512 + (userSP - 5) % 512];
+
+alias mode R5;
+mode = PROCESS_TABLE + (pid*16) + 9;
+
+
+// ---------------------------------
+
+
+// mode flag and stack change
+[mode] = syscall;
+
+[PROCESS_TABLE + (pid*16) + 13] = SP;
+SP = [PROCESS_TABLE + (pid*16) + 11] * 512 - 1;  
+
+
+// ---------------------------------
+
+
+if(syscall == INT_NEWUSR) then
+    
+    // only root shell can create user
+    if(([SYSTEM_STATUS_TABLE + 0] != ROOT) || (pid != SHELL_PROCESS)) then
+        [retAddr] = -2;
+
+    else
+        alias i R6;
+        i = 2;
+
+        alias userName R8;
+        userName = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+        alias password R9;
+        password = [[PTBR + 2*((userSP - 3)/512)] * 512 + (userSP - 3) % 512];
+
+        // find free slot
+        alias userExists R10;
+        userExists = 0;
+        alias freeSlot R7; 
+        freeSlot = -1;
+        while(i < MAX_USER_NUM) do
+            if([USER_TABLE + i*2] == userName) then
+                userExists = 1;
+                break;
+            endif;
+            if([USER_TABLE + i*2] == -1 && freeSlot == -1) then
+                freeSlot = i; 
+            endif;
+            i = i+1;
+        endwhile;
+
+        // same username exists
+        if(userExists == 1) then
+            [retAddr] = -1; // User already exists
+        else
+            // if no free slots
+            if(freeSlot == -1) then
+                [retAddr] = -3; // No free slots
+            else
+                // store values in user table
+                encrypt password;
+                [USER_TABLE + freeSlot*2] = userName;
+                [USER_TABLE + freeSlot*2 + 1] = password;
+                [retAddr] = 0;
+            endif;
+        endif;
+    endif;
+endif;
+
+
+// ---------------------------------
+
+
+if(syscall == INT_REMUSR) then
+
+    // only root shell can rm user
+    if(([SYSTEM_STATUS_TABLE + 0] != ROOT) || (pid != SHELL_PROCESS)) then
+        [retAddr] = -2;
+
+    else
+        alias userName R6;
+        userName = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+
+        // cant delete root and kernel
+        if(userName == "root" || userName == "kernel") then
+            [retAddr] = -2;
+
+        else
+            alias i R7;
+            i = 0;
+            alias userId R8;
+            userId = -1;
+
+            while(i < MAX_USER_NUM) do
+                if([USER_TABLE + i*2] == userName) then
+                    userId = i;
+                    break;
+                endif;
+                i = i+1;
+            endwhile;
+
+            // if user doesnt exist
+            if(userId == -1) then
+                [retAddr] = -1;
+                [mode] = 0;
+                SP = userSP;
+                ireturn;
+            endif;
+
+            // if user owns files then dont remove him
+            i = 0;
+            while(i < MAX_FILE_NUM) do
+                if([ROOT_FILE + i*8 + 3] == userName) then
+                    [retAddr] = -3;
+                    [mode] = 0;
+                    SP = userSP;
+                    ireturn;
+                endif;
+                i = i+1;
+            endwhile;
+
+            // invalidate user table entry
+            [USER_TABLE + userId*2] = -1;
+            [USER_TABLE + userId*2 + 1] = -1;
+
+            [retAddr] = 0;
+        endif;
+    endif;
+endif;
+
+
+// ---------------------------------
+
+
+if(syscall == INT_SETPWD) then
+
+    // only shell process can set pwd
+    if((pid != SHELL_PROCESS)) then
+        [retAddr] = -1;
+
+    else    
+        alias userName R6;
+        userName = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+        alias password R7;
+        password = [[PTBR + 2*((userSP - 3)/512)] * 512 + (userSP - 3) % 512];
+
+        alias i R8;
+        i = 0;
+        alias userId R9;
+        userId = -1;
+        while(i < MAX_USER_NUM) do
+            if([USER_TABLE + i*2] == userName) then
+                userId = i;
+                break;
+            endif;
+            i = i+1;
+        endwhile;
+
+        // if user does not exist
+        if(userId == -1) then
+            [retAddr] = -2;
+            [mode] = 0;
+            SP = userSP;
+            ireturn;
+        endif;
+
+        // if changing for differnt user, check if root is doing it
+        if([SYSTEM_STATUS_TABLE + 0] != userId) then
+            if([SYSTEM_STATUS_TABLE + 0] != ROOT) then
+                [retAddr] = -1;
+                [mode] = 0;
+                SP = userSP;
+                ireturn;
+            endif;
+        endif;
+
+        // update pasword
+        encrypt password;
+        [USER_TABLE + userId*2 + 1] = password;
+
+        [retAddr] = 0;
+    endif;  
+endif;
+
+
+// ---------------------------------
+
+
+if(syscall == INT_GETUNAME) then
+    alias userId R6;
+    userId = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+
+    // validate and return
+    if(userId<0 || userId>15) then
+        [retAddr] = -1;
+        [mode] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+    if([USER_TABLE + userId*2] == -1) then
+        [retAddr] = -1;
+        [mode] = 0;
+        SP = userSP;
+        ireturn;
+    endif;
+
+    [retAddr] = [USER_TABLE + userId*2];
+endif;
+
+
+// ---------------------------------
+
+
+if(syscall == INT_GETUID) then
+    alias i R6;
+    i = 0;
+    alias userName R7;
+    userName = [[PTBR + 2*((userSP - 4)/512)] * 512 + (userSP - 4) % 512];
+
+    // validate and return
+    while(i < MAX_USER_NUM) do
+        if([USER_TABLE + i*2] == userName) then
+            [retAddr] = i;
+            [mode] = 0;
+            SP = userSP;
+            ireturn;
+        endif;
+        i = i+1;
+    endwhile;
+
+    [retAddr] = -1;
+endif;
+
+
+// ---------------------------------
+
+
+// change mode and stack
+[mode] = 0;
+SP = userSP;
+
+
+// ---------------------------------
+
+
+ireturn;

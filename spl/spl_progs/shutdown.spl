@@ -18,7 +18,7 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16) + 11]*512 - 1;
 
 
 // only shell process of root can call shutdown
-if(([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 1] != 1) || ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 3] != 1)) then
+if(([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 1] != SHELL_PROCESS) || ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 3] != 1)) then
 
     // return failure
     [[PTBR + 2*((userSP - 1)/512)] * 512 + (userSP - 1) % 512] = -1;
