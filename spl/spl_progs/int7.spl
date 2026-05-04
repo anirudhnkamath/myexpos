@@ -5,7 +5,7 @@ alias userSP R1;
 userSP = SP;
 
 alias retAddr R2;
-retAddr = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
+retAddr = [PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512);
 
 alias wordAddr R3;
 wordAddr = [PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512);

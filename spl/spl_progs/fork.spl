@@ -23,7 +23,7 @@ multipop(R1);
 if(R0 == -1) then
     // return -1 and reset mode flag
     [([PTBR + (((userSP-1)/512) * 2)] * 512) + ((userSP-1)%512)] = -1;
-    [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE]) + 9] = INT_FORK;
+    [PROCESS_TABLE + (16*[SYSTEM_STATUS_TABLE + 1]) + 9] = 0;
     SP = userSP;
     ireturn;
 endif;
@@ -142,7 +142,10 @@ while(i < 16) do
     [childPTBR + i] = [PTBR + i];
     [childPTBR + i+1] = [PTBR + i+1];
 
-    [MEMORY_FREE_LIST + [childPTBR+i]] = [MEMORY_FREE_LIST + [childPTBR+i]] + 1;
+    if([childPTBR + i] != -1) then
+        [MEMORY_FREE_LIST + [childPTBR+i]] = [MEMORY_FREE_LIST + [childPTBR+i]] + 1;
+    endif;
+
     i = i + 2;
 endwhile;
 

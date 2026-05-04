@@ -27,7 +27,7 @@ if(R1 == FREE_USER_AREA_PAGE) then
             multipush(R0, R1, R2, R3, R4, R5);
             R1 = RELEASE_SEMAPHORE;
             R2 = [resourceTable + i + 1];
-            R3 = [SYSTEM_STATUS_TABLE + 1];
+            R3 = currentPID;
             call RESOURCE_MANAGER;
             multipop(R0, R1, R2, R3, R4, R5);
         endif;
@@ -106,18 +106,18 @@ endif;
 if(R1 == FREE_PAGE_TABLE) then
     alias currentPID R2;
 
-    PTBR = [PROCESS_TABLE + (16*currentPID) + 14];
+    alias pageTableAddr R3;
+    pageTableAddr = PAGE_TABLE_BASE + (20*currentPID);
 
     // library
-    [PTBR + 0] = -1;
-    [PTBR + 1] = "0000";
-    [PTBR + 2] = -1;
-    [PTBR + 3] = "0000";
+    [pageTableAddr + 0] = -1;
+    [pageTableAddr + 1] = "0000";
+    [pageTableAddr + 2] = -1;
+    [pageTableAddr + 3] = "0000";
 
     // release and invalidate all valid pages
-    alias pageTableAddr R3;
-    pageTableAddr = PTBR + 4;
-    while(pageTableAddr < PTBR + 20) do
+    pageTableAddr = pageTableAddr + 4;
+    while(pageTableAddr < [PAGE_TABLE_BASE + (20*currentPID)] + 20) do
         if([pageTableAddr] != -1) then
             multipush(R1, R2, R3);
             R1 = RELEASE_PAGE;
@@ -239,7 +239,7 @@ if(functionNum == KILL_ALL) then
 
     // exit all process except idle, init and cur process
     i = 2;
-    while(i<MAX_PROC_NUM) do
+    while(i<MAX_PROC_NUM-1) do
         if([PROCESS_TABLE + i*16 + 1] != pid && [PROCESS_TABLE + 16*i + 4] != TERMINATED) then
             multipush(R1,R2,R3);
             R1 = EXIT_PROCESS;

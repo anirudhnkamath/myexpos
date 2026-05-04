@@ -4,7 +4,7 @@ alias userSP R1;
 userSP = SP;
 
 alias mode R2;
-mode = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9];
+mode = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9;
 
 alias fileDescriptor R3;
 fileDescriptor = [([PTBR + 2 * ((userSP - 4)/ 512)] * 512) + ((userSP - 4) % 512)];

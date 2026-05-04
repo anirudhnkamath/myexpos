@@ -10,7 +10,7 @@ loadi(69,11);
 
 
 //set sp to kernel stack of idle process
-SP=(82*512)-1;
+SP=(76*512)-1;
 
 call BOOT_MODULE;
 
@@ -56,6 +56,54 @@ PTLR=10;
 [PROCESS_TABLE+14]=PAGE_TABLE_BASE;
 [PROCESS_TABLE+15]=10;
 
+//Transfer the entry point value from the header of the idle process to the top of the user stack of the idle process
+[70*512]=[69*512+1];
+
+
+// ---------------------------------
+
+
+//set up page table entries
+PTBR=PAGE_TABLE_BASE + 20*SWAPPER_DAEMON;
+PTLR=10;
+
+[PTBR+0]=63;
+[PTBR+1]="0100";
+[PTBR+2]=64;
+[PTBR+3]="0100";
+
+[PTBR+4]=-1;
+[PTBR+5]="0000";
+[PTBR+6]=-1;
+[PTBR+7]="0000";
+
+[PTBR+8]=69;
+[PTBR+9]="0100";
+[PTBR+10]=-1;
+[PTBR+11]="0000";
+[PTBR+12]=-1;
+[PTBR+13]="0000";
+[PTBR+14]=-1;
+[PTBR+15]="0000";
+
+[PTBR+16]=77;
+[PTBR+17]="0110";
+[PTBR+18]=-1;
+[PTBR+19]="0000";
+
+//SET UP PROCESS TABLE FOR IDLE
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 1]=SWAPPER_DAEMON;
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 3]=0;
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 4]=CREATED;
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 11]=78;
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 12]=0;
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 13]=8*512;
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 14]=PAGE_TABLE_BASE + 20*SWAPPER_DAEMON;
+[PROCESS_TABLE + (16*SWAPPER_DAEMON) + 15]=10;
+
+//Transfer the entry point value from the header of the idle process to the top of the user stack of the idle process
+[77*512]=[69*512+1];
+
 
 // ---------------------------------
 
@@ -66,10 +114,8 @@ PTLR=10;
 
 // ---------------------------------
 
-
-//Transfer the entry point value from the header of the idle process to the top of the user stack of the idle process
-[70*512]=[69*512+1];
-
+PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
 SP=8*512;
 
 

@@ -28,6 +28,7 @@ load --module 2 ../spl/spl_progs/memory_manager_module.xsm
 load --module 3 ../spl/spl_progs/file_manager_module.xsm
 load --module 4 ../spl/spl_progs/device_manager_module.xsm
 load --module 5 ../spl/spl_progs/scheduler_module.xsm
+load --module 6 ../spl/spl_progs/pager_module.xsm
 load --module 7 ../spl/spl_progs/boot_module.xsm
 load --exec ../expl/expl_progs/crtFile.xsm
 load --exec ../expl/expl_progs/dltFile.xsm
@@ -37,5 +38,5 @@ load --exec ../expl/expl_progs/cat.xsm
 load --exec ../expl/expl_progs/rm.xsm
 load --exec ../expl/expl_progs/lu.xsm
 load --exec ../expl/expl_progs/ru.xsm
-load --exec ../expl/expl_progs/25_4.xsm
+load --exec ../expl/expl_progs/27_1.xsm
 exit

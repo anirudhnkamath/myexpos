@@ -1,0 +1,23 @@
+decl
+    int pid, temp;
+enddecl
+
+int main()
+{
+begin
+    pid=exposcall("Fork");
+    pid=exposcall("Fork");
+    pid=exposcall("Fork");
+    pid=exposcall("Fork");
+    
+    if(pid<0) then
+        temp=exposcall("Write", -2, "NO PCB");
+    
+    else
+        pid=exposcall("Getpid");
+        temp=exposcall("Write", -2, pid);
+    endif;
+
+    return 0;
+end
+}

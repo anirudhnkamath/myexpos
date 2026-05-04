@@ -45,12 +45,15 @@ endif;
 
 
 if(functionNum == RELEASE_PAGE) then
-    alias pageNum R2;
 
+    alias pageNum R2;
+    // print pageNum;
     [MEMORY_FREE_LIST + pageNum] = [MEMORY_FREE_LIST + pageNum] - 1;
+
 
     // release the page if its not used by anyone else
     if([MEMORY_FREE_LIST + pageNum] == 0) then  
+
         [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
 
         // set all wait_mem processes to ready
@@ -65,7 +68,6 @@ if(functionNum == RELEASE_PAGE) then
     endif;
 
     return;
-
 endif;
 
 
@@ -120,7 +122,7 @@ if(functionNum == GET_CODE_PAGE) then
     multipush(R0, R1, R2);
     R1 = DISK_LOAD;
     R4 = blockNum;
-    R2 = [SYSTEM_STATUS_TABLE+1];
+    R2 = curPID;
     R3 = R0;
     call DEVICE_MANAGER;
     multipop(R0, R1, R2);
@@ -157,6 +159,28 @@ if(functionNum == GET_FREE_BLOCK) then
         endif;
 
         freeBlock = freeBlock + 1;
+    endwhile;
+
+    R0 = -1;
+    return;
+endif;
+
+
+// ---------------------------------
+
+
+if(functionNum == GET_SWAP_BLOCK) then
+    alias i R2;
+    i = DISK_SWAP_AREA;
+
+    while(i < DISK_SIZE) do
+        if([DISK_FREE_LIST + i] == 0) then
+            [DISK_FREE_LIST + i] = 1;
+            R0 = i;
+            return;
+        endif;
+
+        i = i + 1;
     endwhile;
 
     R0 = -1;

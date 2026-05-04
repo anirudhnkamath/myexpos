@@ -18,124 +18,45 @@ loadi(62,5);
 
 // ---------------------------------
 
-
-//int4 - create and delete file
-loadi(10,23);
-loadi(11,24);
-
-//int5 - open,close, seek
-loadi(12,25);
-loadi(13,26);
-
-//int 6 - read
-loadi(14,27);
-loadi(15,28);
-
-//INT 7 - write
-loadi(16,29);
-loadi(17,30);
-
-//int 8 - fork
-loadi(18,31);
-loadi(19,32);
-
-//int 9 -exec
-loadi(20,33);
-loadi(21,34);
-
-//INT 10 -exit
-loadi(22,35);
-loadi(23,36);
-
-//INT 11 - getpid,getppid,wait,signal
-loadi(24,37);
-loadi(25,38);
-
-//INT 12 - logout
-loadi(26,39);
-loadi(27,40);
-
-//INT 13 - semget,SEMRELEASE
-loadi(28,41);
-loadi(29,42);
-
-//INT 14 - semlock,semulock
-loadi(30,43);
-loadi(31,44);
-
-//INT 15 - shutdown
-loadi(32,45);
-loadi(33,46);
-
-//INT 16 - Newusr , Remusr , Setpwd , Getuname and Getuid
-loadi(34,47);
-loadi(35,48);
-
-//INT 17 - login
-loadi(36,49);
-loadi(37,50);
-
-
-// ---------------------------------
-
-
-//exception handlers
-loadi(2, 15);
-loadi(3, 16);
+// library
 loadi(63,13);
 loadi(64,14);
 
-//timer interrupts
-loadi(4,17);
-loadi(5,18);
-
-//console interrupts
-loadi(8,21);
-loadi(9,22);
-
-//DISK interrupts
-loadi(6,19);
-loadi(7,20);
-
-
 // ---------------------------------
 
 
-//load module 0 -resource manager module
-loadi(40,53);
-loadi(41,54);
+// load the modules 1-6
+alias page R0;
+alias block R1;
+page = 40;
+block = 53;
+while(page <= 53) do
+    loadi(page, block);
+    page = page + 1;
+    block = block + 1;
+endwhile;
 
-//load module 1 - process manager
-loadi(42,55);
-loadi(43,56);
-
-//load module 2 - memory manager
-loadi(44,57);
-loadi(45,58);
-
-//load module 3 - file manager
-loadi(46,59);
-loadi(47,60);
-
-//load module 4 -device manager module
-loadi(48,61);
-loadi(49,62);
-
-//load module 5-scheduler module
-loadi(50,63);
-loadi(51,64);
+// load interrupts
+page = 2;
+block = 15;
+while(page <= 37) do
+    loadi(page, block);
+    page = page + 1;
+    block = block + 1;
+endwhile;
 
 
 // ---------------------------------
-
 
 //terminal status table
 [TERMINAL_STATUS_TABLE]=0;          
 
 //system status table
 [SYSTEM_STATUS_TABLE] = 0;
-[SYSTEM_STATUS_TABLE+2]=NUM_MEM_PAGES-81;
+[SYSTEM_STATUS_TABLE+2]=NUM_MEM_PAGES-83;
 [SYSTEM_STATUS_TABLE+3]=0;
+[SYSTEM_STATUS_TABLE+4]=0;
+[SYSTEM_STATUS_TABLE+5]=0;
 
 //disk status table
 [DISK_STATUS_TABLE+0]=0;
@@ -190,7 +111,7 @@ endwhile;
 i=0;
 
 while(i < NUM_MEM_PAGES) do
-    if(i<=80) then
+    if(i<=82) then
         [MEMORY_FREE_LIST+i]=1;
     else
         [MEMORY_FREE_LIST+i]=0;
@@ -240,7 +161,7 @@ initProcessT = PROCESS_TABLE + 16;
 [initProcessT + 1] = LOGIN_PROCESS; //pid
 [initProcessT + 3] = KERNEL; //user id of init -> root
 [initProcessT + 4] = CREATED; //STATE
-[initProcessT + 11] = 77; //user area 
+[initProcessT + 11] = 79; //user area 
 [initProcessT + 12] = 0;
 [initProcessT + 13] = 8*512;
 [initProcessT + 14] = PTBR;
@@ -251,7 +172,7 @@ initProcessT = PROCESS_TABLE + 16;
 
 //per process resource table for init 
 alias resource_table R1;
-resource_table = 77*512 + RESOURCE_TABLE_OFFSET;
+resource_table = 79*512 + RESOURCE_TABLE_OFFSET;
 i=0;
 while(i<16) do
     [resource_table+i]=-1;
@@ -289,9 +210,9 @@ PTLR = 10;
 [PTBR+15] = "0000";
 
 //Stack
-[PTBR+16] = 78;
+[PTBR+16] = 80;
 [PTBR+17] = "0110";
-[PTBR+18] = 79;
+[PTBR+18] = 81;
 [PTBR+19] = "0110";
 
 //PROCESS TABLE FOR shell
@@ -300,16 +221,16 @@ shellProcessT = PROCESS_TABLE + 2*16;
 [shellProcessT + 1] = SHELL_PROCESS; //pid
 [shellProcessT + 2] = LOGIN_PROCESS; //ppid -> 1
 [shellProcessT + 4] = TERMINATED; //STATE
-[shellProcessT + 11] = 80; //user area 
+[shellProcessT + 11] = 82; //user area 
 [shellProcessT + 12] = 0;
 [shellProcessT + 13] = 8*512;
 [shellProcessT + 14] = PTBR;
 [shellProcessT + 15] = PTLR;
 
 //second entry of the header of an executable file will contain an entry point value for init
-[78*512] = [67*512+1];
+[80*512] = [67*512+1];
 
-resource_table = 80*512 + RESOURCE_TABLE_OFFSET;
+resource_table = 82*512 + RESOURCE_TABLE_OFFSET;
 i=0;
 while(i<16) do
     [resource_table+i]=-1;
@@ -333,10 +254,17 @@ endwhile;
 // ---------------------------------
 
 
-//set all remaining process state to terminated
+// set all remaining process state to terminated
 i = 3;
 while(i<MAX_PROC_NUM) do
     [PROCESS_TABLE + (i*16) + 4] = TERMINATED;
+    i=i+1;
+endwhile;
+
+// tick
+i = 0;
+while(i<MAX_PROC_NUM) do
+    [PROCESS_TABLE + (i*16)] = 0;
     i=i+1;
 endwhile;
 

@@ -11,7 +11,6 @@ int main() {
             temp = exposcall("Write", -2, "password:");
             temp = exposcall("Read", -1, password);
 
-            breakpoint;
             status = exposcall("Login", username, password);
 
             if (status == -1) then

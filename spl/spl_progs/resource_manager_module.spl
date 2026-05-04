@@ -93,7 +93,7 @@ if(functionNum == ACQUIRE_SEMAPHORE) then
     endwhile;
 
     // if no semaphore free
-    if(semTableIndex == -1) then
+    if(semTableIndex == MAX_SEM_COUNT) then
         R0 = -1;
 
     else 
@@ -152,9 +152,9 @@ if(functionNum == ACQUIRE_INODE) then
         [PROCESS_TABLE + pid*16 + 4] = WAIT_FILE;
         [PROCESS_TABLE + pid*16 + 5] = inodeIndex;
 
-        multipush(R1, R2);
+        multipush(R1, R2, R3);
         call SCHEDULER;
-        multipop(R1, R2);
+        multipop(R1, R2, R3);
 
     endwhile;
 

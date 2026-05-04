@@ -11,15 +11,72 @@ backup;
 // ---------------------------------
 
 
-// make current process ready
+// if swapping is initiated
+if([SYSTEM_STATUS_TABLE + 5] != 0) then
 
-alias currentPID R0;
-currentPID = [SYSTEM_STATUS_TABLE + 1];
+    // if swap out
+    if([SYSTEM_STATUS_TABLE + 1] == SWAPPER_DAEMON && [SYSTEM_STATUS_TABLE + 5] == SWAP_OUT) then    
+        R1 = SWAP_OUT;
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        call PAGER_MODULE;
 
-alias process_table_entry R1;
-process_table_entry = PROCESS_TABLE + currentPID*16;
+    // if swap in 
+    else
+        if([SYSTEM_STATUS_TABLE + 1] == SWAPPER_DAEMON && [SYSTEM_STATUS_TABLE + 5] == SWAP_IN) then    
+            R1 = SWAP_IN;
+            R2 = [SYSTEM_STATUS_TABLE + 1];
+            call PAGER_MODULE;        
+        endif;
+    endif;
 
-[process_table_entry + 4] = READY;
+// swapping not initiated
+else
+
+    // if swapout needed, do next time
+    if([SYSTEM_STATUS_TABLE + 2] < MEM_LOW) then
+        [SYSTEM_STATUS_TABLE + 5] = SWAP_OUT;
+
+    else
+
+        // there are swapped processes, swap them back in next time
+        if([SYSTEM_STATUS_TABLE + 4] > 0) then
+            alias i R4;
+            i = 0;
+            while(i < MAX_PROC_NUM) do
+                if([PROCESS_TABLE + i*16 + 6] == 1 && ([PROCESS_TABLE + i*16] > MAX_TICK || [SYSTEM_STATUS_TABLE + 2] > MEM_HIGH)) then
+                    [SYSTEM_STATUS_TABLE + 5] = SWAP_IN;
+                    break;
+                endif;
+
+                i = i + 1;
+            endwhile;
+        endif;
+    endif;
+
+endif;
+
+
+
+// ---------------------------------
+
+
+// update state to ready
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = READY;
+
+
+// ---------------------------------
+
+
+// increment tick count
+alias i R1;
+i = 0;
+while(i < MAX_PROC_NUM) do
+    if([PROCESS_TABLE + i*16 + 4] != TERMINATED) then
+        [PROCESS_TABLE + i*16] = [PROCESS_TABLE + i*16] + 1;
+    endif;
+    i = i + 1;
+endwhile;
+
 
 
 // ---------------------------------
